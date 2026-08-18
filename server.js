@@ -1,0 +1,1217 @@
+const express = require("express");
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
+const zlib = require("zlib");
+const { execFile } = require("child_process");
+const { Readable } = require("stream");
+
+const PORT = process.env.PORT || 3000;
+const OUTPUT_DIR = path.join(__dirname, "output");
+fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+const app = express();
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+const htmlCache = new Map();
+
+const LANGS = ["en", "es", "pt", "fr", "de", "id", "tr", "ru"];
+const LOCALES = { en: "en_US", es: "es_ES", pt: "pt_BR", fr: "fr_FR", de: "de_DE", id: "id_ID", tr: "tr_TR", ru: "ru_RU" };
+const i18nDicts = {};
+for (const l of LANGS) {
+  i18nDicts[l] = JSON.parse(fs.readFileSync(path.join(__dirname, "i18n", l + ".json"), "utf8"));
+}
+
+let LD_GRAPH = null;
+(function loadLdGraph() {
+  const raw = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
+  const m = raw.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  if (m) {
+    try {
+      LD_GRAPH = JSON.parse(m[1]);
+    } catch (e) {
+      console.log("Failed to parse JSON-LD: " + e.message);
+    }
+  }
+})();
+
+function stripTags(s) {
+  return String(s).replace(/<[^>]*>/g, "");
+}
+
+function langUrl(lang) {
+  return lang === "en" ? "/" : "/" + lang;
+}
+
+function buildLocalizedLd(lang, dict) {
+  const g = JSON.parse(JSON.stringify(LD_GRAPH));
+  const title = dict["meta.title"];
+  const desc = dict["meta.desc"];
+  const u = langUrl(lang);
+  const faqName = stripTags(dict["sec3.title"]);
+  const howName = stripTags(dict["sec2.title"]);
+  for (const node of g["@graph"]) {
+    if (node["@type"] === "WebSite") {
+      node.url = u;
+      node.description = desc;
+      node.inLanguage = lang;
+    } else if (node["@type"] === "WebPage") {
+      node.url = u;
+      node.name = title;
+      node.description = desc;
+      node.inLanguage = lang;
+    } else if (node["@type"] === "SoftwareApplication") {
+      node.url = u;
+      node.description = desc;
+      node.featureList = [dict["meta.nowm"], dict["meta.quality"], dict["meta.noreg"], dict["meta.free"]];
+    } else if (node["@type"] === "VideoObject") {
+      node.description = desc;
+      node.inLanguage = lang;
+    } else if (node["@type"] === "FAQPage") {
+      node.url = u + "#faq";
+      node.name = faqName;
+      node.inLanguage = lang;
+      node.mainEntity = [];
+      for (let i = 1; i <= 14; i++) {
+        node.mainEntity.push({
+          "@type": "Question",
+          name: dict["faq" + i + ".q"],
+          acceptedAnswer: { "@type": "Answer", text: dict["faq" + i + ".a"] },
+        });
+      }
+    } else if (node["@type"] === "HowTo") {
+      node.name = howName;
+      node.step = [];
+      for (let i = 1; i <= 3; i++) {
+        node.step.push({
+          "@type": "HowToStep",
+          position: i,
+          name: stripTags(dict["step" + i + ".t"]),
+          text: stripTags(dict["step" + i + ".d"]),
+        });
+      }
+    }
+  }
+  return JSON.stringify(g);
+}
+
+function localizeHtml(raw, lang) {
+  const dict = i18nDicts[lang];
+  const title = dict["meta.title"];
+  const desc = dict["meta.desc"];
+  const u = langUrl(lang);
+  let out = raw
+    .replace(/<html lang="[^"]*"/, '<html lang="' + lang + '"')
+    .replace(/<title>[^<]*<\/title>/, "<title>" + title + "</title>")
+    .replace(/(<meta name="description" content=")[^"]*(")/, "$1" + desc + "$2")
+    .replace(/(<meta property="og:title" content=")[^"]*(")/, "$1" + title + "$2")
+    .replace(/(<meta name="twitter:title" content=")[^"]*(")/, "$1" + title + "$2")
+    .replace(/(<meta property="og:description" content=")[^"]*(")/, "$1" + desc + "$2")
+    .replace(/(<meta name="twitter:description" content=")[^"]*(")/, "$1" + desc + "$2")
+    .replace(/(<meta property="og:locale" content=")[^"]*(")/, "$1" + LOCALES[lang] + "$2")
+    .replace(/(<link rel="canonical" href=")\/[^"]*(")/, "$1" + u + "$2")
+    .replace(/(<meta property="og:url" content=")\/[^"]*(")/, "$1" + u + "$2");
+  out = out.replace(
+    /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
+    '<script type="application/ld+json">' + buildLocalizedLd(lang, dict) + "</script>"
+  );
+  const inlineDict = JSON.stringify({
+    supported: LANGS,
+    defaultLang: "en",
+    currentLang: lang,
+    strings: { [lang]: dict, en: i18nDicts.en },
+  });
+  // DOWNTIK_DOWNLOADER lives in the same script tag — swap only the I18N line.
+  out = out.replace(/var DOWNTIK_I18N\s*=\s*\{[^\n]*\};/, "var DOWNTIK_I18N = " + inlineDict + ";");
+  const hrefs = LANGS.map(
+    (l) => '<link rel="alternate" hreflang="' + l + '" href="{{BASE}}' + langUrl(l) + '" />'
+  ).join("\n");
+  out = out.replace("</head>", hrefs + '\n<link rel="alternate" hreflang="x-default" href="{{BASE}}/" />\n</head>');
+  return out;
+}
+
+function absolutizeHtml(html, base) {
+  return html
+    .replace(/(<link rel="canonical" href=")\/([^"]*)(")/g, "$1" + base + "/$2$3")
+    .replace(/(<meta property="og:url" content=")\/([^"]*)(")/g, "$1" + base + "/$2$3")
+    .replace(/(<meta property="og:image" content=")\/([^"]*)(")/g, "$1" + base + "/$2$3")
+    .replace(/(<meta name="twitter:image" content=")\/([^"]*)(")/g, "$1" + base + "/$2$3")
+    .replace(/(<meta name="twitter:card" content="summary_large_image"\s*\/?>)/g, function (m) {
+      return m;
+    });
+}
+
+function sendGzip(res, body, contentType, extraHeaders) {
+  const headers = {
+    "Content-Type": contentType,
+    "Content-Encoding": "gzip",
+    Vary: "Accept-Encoding",
+  };
+  Object.assign(headers, extraHeaders || {});
+  res.writeHead(200, headers);
+  zlib.gzip(body, (err, buf) => {
+    if (err) return res.end(body);
+    res.end(buf);
+  });
+}
+
+function serveHtmlFile(req, res, file, lang) {
+  const cacheKey = file + "|" + (lang || "en");
+  let html = htmlCache.get(cacheKey);
+  if (!html) {
+    html = fs.readFileSync(file, "utf8");
+    if (lang) {
+      html = localizeHtml(html, lang);
+    }
+    htmlCache.set(cacheKey, html);
+  }
+  const host = req.get("host") || "localhost";
+  const proto = req.protocol || "http";
+  const base = proto + "://" + host;
+  html = html.split("{{BASE}}").join(base);
+  const referer = (req.headers.referer || req.headers.referrer || "-").slice(0, 160);
+  log("hit " + req.path + " ref=" + referer);
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  const acceptGzip = (req.headers["accept-encoding"] || "").includes("gzip");
+  if (acceptGzip) {
+    sendGzip(res, absolutizeHtml(html, base), "text/html; charset=utf-8");
+  } else {
+    res.send(absolutizeHtml(html, base));
+  }
+}
+
+function send404(req, res) {
+  res.status(404);
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.send(
+    "<!doctype html><html lang=\"en-US\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Page not found - DownTik</title><meta name=\"robots\" content=\"noindex, nofollow\"></head><body style=\"font-family:system-ui,sans-serif;text-align:center;padding:80px 20px;color:#0f1117\"><h1 style=\"font-size:clamp(28px,5vw,44px)\">404 - Page not found</h1><p>The page you are looking for does not exist.</p><p><a href=\"/\" style=\"color:#0d9488\">Go to DownTik homepage</a></p></body></html>"
+  );
+}
+
+function isHtmlPath(p) {
+  return /\.html?$/i.test(p);
+}
+
+function serveSubPage(name) {
+  return (req, res) => serveHtmlFile(req, res, path.join(__dirname, name + ".html"));
+}
+
+const TOKEN = "eb2d29f073882a99dc5bda9461c19ab12ed648855ac4986303d3a05c910a9c20";
+const DESKTOP_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const MOBILE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+const ALLOWED_HOSTS = [
+  "tiktok.com",
+  "tiktokcdn.com",
+  "tiktokcdn-us.com",
+  "tikcdn.com",
+  "bytedance.com",
+  "byteoversea.com",
+  "tiktokv.com",
+  "muscdn.com",
+  "ibyteimg.com",
+  "byteimg.com",
+  "akamaized.net",
+  "bytedn.com",
+  "googleapis.com",
+  "gstatic.com",
+  "w3.org",
+  "w3schools.com",
+];
+
+const convertCache = new Map();
+const convertLocks = new Map();
+const convertCacheAge = new Map();
+
+const infoCache = new Map();
+const infoInFlight = new Map();
+const imageCache = new Map();
+
+const MAX_CACHE_ENTRIES = 60;
+const MAX_CONVERSIONS = 2;
+let activeConversions = 0;
+const convertQueue = [];
+
+function evictOldest(cache, ageMap, cap) {
+  while (cache.size > cap) {
+    let oldestKey = null;
+    let oldestTs = Infinity;
+    for (const [k, ts] of ageMap) {
+      if (ts < oldestTs) {
+        oldestTs = ts;
+        oldestKey = k;
+      }
+    }
+    if (oldestKey == null) break;
+    const file = cache.get(oldestKey);
+    if (file && typeof file === "string") {
+      try { fs.unlinkSync(file); } catch (e) {}
+    }
+    cache.delete(oldestKey);
+    ageMap.delete(oldestKey);
+  }
+}
+
+const RATE_WINDOW = 60 * 1000;
+const RATE_MAX = 60;
+const rateHits = new Map();
+
+function rateLimit(req) {
+  const ip = req.ip || req.socket.remoteAddress || "local";
+  const nowT = Date.now();
+  const rec = rateHits.get(ip) || { count: 0, windowStart: nowT };
+  if (nowT - rec.windowStart > RATE_WINDOW) {
+    rec.count = 0;
+    rec.windowStart = nowT;
+  }
+  rec.count += 1;
+  rateHits.set(ip, rec);
+  if (rec.count > RATE_MAX) {
+    return { status: "error", code: 429, message: "You have performed the action too quickly. Please slow down!" };
+  }
+  return null;
+}
+
+setInterval(() => {
+  const nowT = Date.now();
+  for (const [k, v] of rateHits) {
+    if (nowT - v.windowStart > RATE_WINDOW) rateHits.delete(k);
+  }
+  for (const [key, file] of convertCache) {
+    const age = nowT - (convertCacheAge.get(key) || 0);
+    if (age > 2 * 60 * 60 * 1000) {
+      try { fs.unlinkSync(file); } catch (e) {}
+      convertCache.delete(key);
+      convertCacheAge.delete(key);
+    }
+  }
+  for (const [key, rec] of infoCache) {
+    if (nowT - rec.ts > (rec.data ? 60 * 60 * 1000 : 60 * 1000)) infoCache.delete(key);
+  }
+  for (const [key, rec] of imageCache) {
+    if (nowT - rec.ts > 60 * 60 * 1000) imageCache.delete(key);
+  }
+}, 10 * 60 * 1000).unref();
+
+function now() {
+  return new Date().toISOString();
+}
+
+function log(msg) {
+  console.log("[" + now() + "] " + msg);
+}
+
+function randId() {
+  return crypto.randomBytes(8).toString("hex");
+}
+
+function hashKey(str) {
+  return crypto.createHash("sha1").update(str).digest("hex").slice(0, 16);
+}
+
+function isAllowedMediaUrl(u) {
+  try {
+    const host = new URL(u).hostname.toLowerCase();
+    return ALLOWED_HOSTS.some((h) => host === h || host.endsWith("." + h));
+  } catch (e) {
+    return false;
+  }
+}
+
+function cleanUrl(input) {
+  let u = (input || "").trim();
+  if (!/^https?:\/\//i.test(u)) {
+    u = "https://" + u;
+  }
+  try {
+    const parsed = new URL(u);
+    const host = parsed.hostname.toLowerCase();
+    if (!host.includes("tiktok.com")) return null;
+    parsed.hash = "";
+    parsed.search = "";
+    return parsed.toString();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function resolveShortLink(url) {
+  const res = await fetch(url, {
+    method: "GET",
+    redirect: "follow",
+    headers: { "User-Agent": MOBILE_UA, Accept: "text/html,application/xhtml+xml" },
+    signal: AbortSignal.timeout(15000),
+  });
+  return res.url || url;
+}
+
+async function fetchTikTokPage(url) {
+  let lastErr = null;
+  const attempts = [
+    { ua: DESKTOP_UA },
+    { ua: MOBILE_UA },
+  ];
+  for (const a of attempts) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": a.ua,
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Upgrade-Insecure-Requests": "1",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "none",
+        },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (res.status === 403 || res.status === 429 || res.status === 503) {
+        lastErr = new Error("HTTP " + res.status);
+        continue;
+      }
+      if (!res.ok) {
+        lastErr = new Error("HTTP " + res.status);
+        continue;
+      }
+      const html = await res.text();
+      if (html.includes("captcha") && !html.includes("__UNIVERSAL_DATA_FOR_REHYDRATION__")) {
+        lastErr = new Error("captcha");
+        continue;
+      }
+      return html;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("Failed to fetch TikTok page");
+}
+
+function extractRehydrationData(html) {
+  const m = html.match(/<script[^>]*id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[1]);
+  } catch (e) {
+    return null;
+  }
+}
+
+function pickUrl(list) {
+  if (!list) return null;
+  const arr = Array.isArray(list) ? list : [list];
+  for (const item of arr) {
+    if (typeof item === "string" && item) return item;
+    if (item && typeof item.src === "string" && item.src) return item.src;
+    if (item && typeof item.url === "string" && item.url) return item.url;
+    if (item && Array.isArray(item.urlList) && item.urlList.length) return item.urlList[0];
+  }
+  return null;
+}
+
+function noWatermark(playUrl) {
+  if (!playUrl) return null;
+  const withPlay = playUrl.replace(/\/playwm\//, "/play/");
+  const withPlayv2 = withPlay.replace(/\/play\//, "/playv2/");
+  if (withPlayv2 !== playUrl) return withPlayv2;
+  if (withPlay !== playUrl) return withPlay;
+  return null;
+}
+
+function parseAweme(data) {
+  const module = data && data.__DEFAULT_SCOPE__ && data.__DEFAULT_SCOPE__["webapp.video-detail"];
+  if (!module || !module.itemInfo || !module.itemInfo.itemStruct) return null;
+  const item = module.itemInfo.itemStruct;
+  const id = String(item.id || item.aweme_id || "");
+  const author =
+    item.author && item.author.uniqueId
+      ? item.author
+      : item.creator && item.creator.uniqueId
+      ? item.creator
+      : null;
+  const nickname = (author && (author.nickname || author.uniqueId)) || "TikTok User";
+  const avatar = pickUrl((author && (author.avatarLarger || author.avatarMedium || author.avatarThumb)) || null) || "";
+  const cover = pickUrl(item.video && item.video.cover) || pickUrl(item.video && item.video.originCover) || "";
+  const desc = (item.desc || "").trim();
+  const duration = Math.round(((item.video && item.video.duration) || item.duration || (item.music && item.music.duration) || 0) / 1000);
+  const createTime = item.createTime || item.create_time || 0;
+  const viewCount = (item.stats && (item.stats.playCount || item.stats.play_count)) || 0;
+
+  const photos = [];
+  if (item.imagePost && Array.isArray(item.imagePost.images)) {
+    for (const img of item.imagePost.images) {
+      const u = pickUrl(img && (img.imageUrl || img.displayImage || img.cover));
+      if (u) photos.push({ url: u, title: img.imageURLTag || "" });
+    }
+  }
+
+  let videoUrl = "";
+  let videoWidth = 0;
+  let videoHeight = 0;
+  if (item.video) {
+    videoWidth = parseInt(item.video.width, 10) || parseInt((item.video.playAddr && item.video.playAddr.width) || "0", 10) || 0;
+    videoHeight = parseInt(item.video.height, 10) || parseInt((item.video.playAddr && item.video.playAddr.height) || "0", 10) || 0;
+    const playAddr = pickUrl(item.video.playAddr || item.video.play_addr);
+    const downloadAddr = pickUrl(item.video.downloadAddr || item.video.download_addr);
+    if (downloadAddr && isAllowedMediaUrl(downloadAddr)) {
+      videoUrl = downloadAddr;
+    } else if (playAddr) {
+      videoUrl = noWatermark(playAddr) || playAddr;
+    } else if (item.video.playUrl) {
+      videoUrl = item.video.playUrl;
+    }
+  }
+
+  const musicUrl =
+    pickUrl(item.music && (item.music.playUrl || item.music.play_url)) ||
+    pickUrl(item.music && item.music.url) ||
+    "";
+  const musicTitle = (item.music && (item.music.title || item.music.originalTitle)) || "";
+  const musicAuthor = (item.music && (item.music.author || item.music.artists && item.music.artists[0])) || "";
+
+  const type = photos.length > 0 ? "photo" : "video";
+
+  return {
+    aweme_id: id,
+    title: desc,
+    author: { name: nickname, nickname, avatar, uniqueId: (author && author.uniqueId) || "" },
+    cover,
+    duration,
+    create_time: createTime,
+    view_count: viewCount,
+    type,
+    video: videoUrl
+      ? { url: videoUrl, url_nwm: videoUrl, watermark: false, width: videoWidth, height: videoHeight }
+      : null,
+    music: musicUrl ? { title: musicTitle, author: musicAuthor, url: musicUrl, duration } : null,
+    photos,
+  };
+}
+
+function mapTikwmData(j) {
+  const d = j && j.data;
+  if (!d) return null;
+  const photos = Array.isArray(d.images)
+    ? d.images.map((u) => ({ url: u, title: "" }))
+    : [];
+  const author = d.author || {};
+  return {
+    aweme_id: String(d.id || ""),
+    title: (d.title || d.desc || "").trim(),
+    author: {
+      name: author.nickname || author.unique_id || "TikTok User",
+      nickname: author.nickname || author.unique_id || "TikTok User",
+      avatar: author.avatar || "",
+      uniqueId: author.unique_id || "",
+    },
+    cover: d.cover || "",
+    duration: d.duration || 0,
+    create_time: d.create_time || 0,
+    view_count: d.play_count || 0,
+    type: photos.length > 0 ? "photo" : "video",
+    video: d.play
+      ? {
+          url: d.play,
+          url_nwm: d.play,
+          watermark: false,
+          width: parseInt(d.width || d.video_width || "0", 10) || 0,
+          height: parseInt(d.height || d.video_height || "0", 10) || 0,
+        }
+      : null,
+    music:
+      d.music || d.music_info && d.music_info.play_url
+        ? {
+            title: (d.music_info && (d.music_info.title || d.music_info.author)) || d.music_title || "",
+            author: d.music_info ? d.music_info.author : "",
+            url: d.music || (d.music_info && d.music_info.play_url) || "",
+            duration: d.duration || 0,
+          }
+        : null,
+    photos,
+  };
+}
+
+async function searchTikwm(url) {
+  const res = await fetch("https://www.tikwm.com/api/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": DESKTOP_UA,
+      Accept: "application/json",
+    },
+    body: new URLSearchParams({ url }),
+  });
+  if (!res.ok) return null;
+  const j = await res.json();
+  if (j.code !== 0) return null;
+  return mapTikwmData(j);
+}
+
+async function searchDirect(url) {
+  const resolved = await resolveShortLink(url);
+  const page = await fetchTikTokPage(resolved);
+  const rehydrated = extractRehydrationData(page);
+  if (!rehydrated) return null;
+  return parseAweme(rehydrated);
+}
+
+async function getVideoData(url) {
+  let data = null;
+  try {
+    data = await searchDirect(url);
+  } catch (e) {
+    data = null;
+  }
+  if (!data) {
+    try {
+      data = await searchTikwm(url);
+    } catch (e) {
+      data = null;
+    }
+  }
+  return data;
+}
+
+async function getVideoDataCached(url) {
+  const hit = infoCache.get(url);
+  if (hit && Date.now() - hit.ts < (hit.data ? 60 * 60 * 1000 : 60 * 1000)) {
+    return hit.data;
+  }
+  if (infoInFlight.has(url)) {
+    return infoInFlight.get(url);
+  }
+  const p = (async () => {
+    const data = await getVideoData(url);
+    infoCache.set(url, { ts: Date.now(), data });
+    if (infoCache.size > 300) {
+      let oldestKey = null;
+      let oldestTs = Infinity;
+      for (const [k, rec] of infoCache) {
+        if (rec.ts < oldestTs) {
+          oldestTs = rec.ts;
+          oldestKey = k;
+        }
+      }
+      if (oldestKey != null) infoCache.delete(oldestKey);
+    }
+    return data;
+  })();
+  infoInFlight.set(url, p);
+  p.finally(() => infoInFlight.delete(url));
+  return p;
+}
+
+function proxyImageUrl(u) {
+  return "/img?u=" + encodeURIComponent(u);
+}
+
+const sizeCache = new Map();
+
+const probeCache = new Map();
+
+function probeVideoSize(url) {
+  return new Promise((resolve) => {
+    const hit = probeCache.get(url);
+    if (hit && Date.now() - hit.ts < 60 * 60 * 1000) return resolve(hit.size);
+    execFile(
+      "ffprobe",
+      [
+        "-v",
+        "error",
+        "-rw_timeout",
+        "10000000",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height",
+        "-of",
+        "csv=p=0",
+        url,
+      ],
+      { timeout: 15000 },
+      (err, stdout) => {
+        let size = { width: 0, height: 0 };
+        if (!err) {
+          const parts = stdout.trim().split(",");
+          const w = parseInt(parts[0], 10);
+          const h = parseInt(parts[1], 10);
+          if (isFinite(w) && isFinite(h) && h > 0) size = { width: w, height: h };
+        }
+        probeCache.set(url, { ts: Date.now(), size });
+        resolve(size);
+      }
+    );
+  });
+}
+
+async function getRemoteSize(url) {
+  const hit = sizeCache.get(url);
+  if (hit && Date.now() - hit.ts < 60 * 60 * 1000) return hit.bytes;
+  let bytes = 0;
+  try {
+    const res = await fetch(url, {
+      method: "HEAD",
+      headers: { "User-Agent": DESKTOP_UA, Referer: "https://www.tiktok.com/" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(6000),
+    });
+    if (res.ok) {
+      const cl = parseInt(res.headers.get("content-length") || "", 10);
+      if (isFinite(cl) && cl > 0) bytes = cl;
+    }
+  } catch (e) {}
+  if (!bytes) {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": DESKTOP_UA, Referer: "https://www.tiktok.com/", Range: "bytes=0-0" },
+        redirect: "follow",
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) {
+        const cr = res.headers.get("content-range");
+        const m = cr && cr.match(/\/(\d+)\s*$/);
+        if (m) bytes = parseInt(m[1], 10) || 0;
+      }
+    } catch (e) {}
+  }
+  sizeCache.set(url, { ts: Date.now(), bytes });
+  return bytes;
+}
+
+function toTemplateData(data, sizes) {
+  const qualities = {};
+  sizes = sizes || { video: 0, music: 0 };
+  if (data.video && data.video.url_nwm) {
+    qualities.best = {
+      cdn_url: data.video.url_nwm,
+      ext: "mp4",
+      height: data.video.height || 0,
+      width: data.video.width || 0,
+      label: "original",
+      filesize: sizes.video || 0,
+    };
+    // Add 480p quality for SD button when source is tall enough
+    if ((data.video.height || 0) >= 480) {
+      qualities["480p"] = {
+        cdn_url: data.video.url_nwm,
+        ext: "mp4",
+        height: 480,
+        width: Math.round((data.video.width || 854) * 480 / (data.video.height || 480)),
+        label: "480p",
+        filesize: sizes.video || 0,
+      };
+    }
+  }
+  if (data.music && data.music.url) {
+    qualities.audio = { cdn_url: data.music.url, ext: "mp3", label: "audio", filesize: sizes.music || 0 };
+  }
+  const images = data.photos && data.photos.length ? data.photos.map((p) => proxyImageUrl(p.url)) : [];
+  return {
+    source: "hybrid",
+    qualities,
+    images,
+    thumbnail: data.cover ? proxyImageUrl(data.cover) : "",
+    thumbnail_raw: data.cover || "",
+    author: data.author && (data.author.name || data.author.nickname) || "",
+    description: data.title || "",
+    view_count: data.view_count || 0,
+    duration: data.duration || 0,
+  };
+}
+
+app.get("/api", (req, res) => {
+  res.json({ status: "success", message: "DownTik Downloader API", version: "2", token: TOKEN });
+});
+
+app.post("/info", async (req, res) => {
+  const limited = rateLimit(req);
+  if (limited) return res.status(429).json({ code: "too_many_requests", detail: limited.message });
+  const rawUrl = (req.body && req.body.url || "").trim();
+
+  // TEST MODE: if URL contains "testmode", return mock data for UI testing
+  if (rawUrl.includes("testmode")) {
+    log("test mode triggered");
+    return res.json({
+      source: "hybrid",
+      qualities: {
+        best: {
+          cdn_url: "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+          ext: "mp4",
+          height: 1080,
+          width: 1920,
+          label: "original",
+          filesize: 14621544,
+        },
+        "480p": {
+          cdn_url: "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+          ext: "mp4",
+          height: 480,
+          width: 854,
+          label: "480p",
+          filesize: 3000000,
+        },
+        audio: {
+          cdn_url: "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+          ext: "mp3",
+          label: "audio",
+          filesize: 1500000,
+        },
+      },
+      images: [],
+      thumbnail: "https://media.w3.org/2010/05/sintel/poster.png",
+      thumbnail_raw: "https://media.w3.org/2010/05/sintel/poster.png",
+      author: "Test Creator",
+      description: "Test video for UI debugging - paste any URL with 'testmode' to trigger this",
+      view_count: 31400000,
+      duration: 35,
+    });
+  }
+
+  const clean = cleanUrl(rawUrl);
+  if (!clean) {
+    return res.status(400).json({ code: "invalid_url", detail: "Wrong link format. Paste the TikTok URL and try again!" });
+  }
+
+  if (!clean) {
+    return res.status(400).json({ code: "invalid_url", detail: "Wrong link format. Paste the TikTok URL and try again!" });
+  }
+  let data = null;
+  try {
+    data = await getVideoDataCached(clean);
+  } catch (e) {
+    log("info error: " + (e && e.message || e));
+    data = null;
+  }
+  if (!data) {
+    log("info no data for " + clean);
+    return res.status(400).json({ code: "fetch_failed", detail: "Could not fetch video data. Please try again." });
+  }
+  const sizes = { video: 0, music: 0 };
+  await Promise.all([
+    (async () => {
+      if (data.video && data.video.url_nwm) sizes.video = await getRemoteSize(data.video.url_nwm);
+    })(),
+    (async () => {
+      if (data.music && data.music.url) sizes.music = await getRemoteSize(data.music.url);
+    })(),
+  ]);
+  if (data.video && data.video.url_nwm && (!data.video.height || data.video.height <= 0)) {
+    const probed = await probeVideoSize(data.video.url_nwm);
+    if (probed && probed.height > 0) {
+      data.video.width = probed.width;
+      data.video.height = probed.height;
+    }
+  }
+  res.json(toTemplateData(data, sizes));
+});
+
+app.get("/geo", (req, res) => {
+  res.json({ code: "US" });
+});
+
+app.post("/stats/download", (req, res) => {
+  res.status(204).end();
+});
+
+async function downloadToFile(url, file) {
+  const isTikTok = /tiktok|tikcdn|bytedance|byteoversea|muscdn|ibyteimg|byteimg|akamaized|bytedn/i.test(url);
+  const headers = { "User-Agent": DESKTOP_UA };
+  if (isTikTok) headers.Referer = "https://www.tiktok.com/";
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new Error("download failed " + res.status);
+  const buf = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(file, buf);
+  return file;
+}
+
+function runFfmpeg(args, onProgress) {
+  const fullArgs = onProgress ? args.concat(["-progress", "pipe:1"]) : args;
+  return new Promise((resolve, reject) => {
+    const child = execFile("ffmpeg", fullArgs, { maxBuffer: 1024 * 1024 * 64 }, (err, stdout, stderr) => {
+      if (err) reject(new Error(stderr || err.message));
+      else resolve(stdout);
+    });
+    if (onProgress) {
+      child.stdout.on("data", (chunk) => {
+        const m = chunk.toString().match(/out_time_ms=(\d+)/);
+        if (m) onProgress(parseInt(m[1], 10) / 1e6);
+      });
+    }
+  });
+}
+
+function singleFlight(key, fn) {
+  const lock = convertLocks.get(key);
+  if (lock) return lock;
+  const p = fn().then((file) => {
+    convertCache.set(key, file);
+    convertCacheAge.set(key, Date.now());
+    evictOldest(convertCache, convertCacheAge, MAX_CACHE_ENTRIES);
+    return file;
+  });
+  convertLocks.set(key, p);
+  p.then(
+    () => convertLocks.delete(key),
+    () => convertLocks.delete(key)
+  );
+  return p;
+}
+
+async function withConvertSlot(fn) {
+  if (activeConversions >= MAX_CONVERSIONS) {
+    await new Promise((resolve) => convertQueue.push(resolve));
+  }
+  activeConversions += 1;
+  try {
+    return await fn();
+  } finally {
+    activeConversions -= 1;
+    if (convertQueue.length) convertQueue.shift()();
+  }
+}
+
+async function convertToMp3File(cdnUrl) {
+  const key = "mp3|" + hashKey(cdnUrl);
+  return singleFlight(key, () => withConvertSlot(async () => {
+    const cached = convertCache.get(key);
+    if (cached && fs.existsSync(cached)) return cached;
+    const id = randId();
+    const tmp = path.join(OUTPUT_DIR, id + ".src");
+    await downloadToFile(cdnUrl, tmp);
+    const out = path.join(OUTPUT_DIR, id + ".mp3");
+    try {
+      await runFfmpeg(["-y", "-i", tmp, "-vn", "-acodec", "libmp3lame", "-q:a", "2", out]);
+      try { fs.unlinkSync(tmp); } catch (e) {}
+    } catch (e) {
+      log("mp3 re-encode failed, serving source audio: " + e.message.slice(0, 120));
+      fs.renameSync(tmp, out);
+    }
+    log("mp3 ready " + key);
+    return out;
+  }));
+}
+
+const QUALITY_HEIGHT = { "720p": 720, "480p": 480, "360p": 360, "240p": 240 };
+
+async function convertToQualityFile(cdnUrl, quality) {
+  const height = QUALITY_HEIGHT[quality];
+  if (!height) throw new Error("unsupported quality " + quality);
+  const key = quality + "|" + hashKey(cdnUrl);
+  return singleFlight(key, () => withConvertSlot(async () => {
+    const cached = convertCache.get(key);
+    if (cached && fs.existsSync(cached)) return cached;
+    const id = randId();
+    const tmp = path.join(OUTPUT_DIR, id + ".src");
+    await downloadToFile(cdnUrl, tmp);
+    const out = path.join(OUTPUT_DIR, id + ".mp4");
+    try {
+      await runFfmpeg([
+        "-y", "-i", tmp,
+        "-vf", "scale=-2:" + height,
+        "-c:v", "libx264", "-crf", "23", "-preset", "fast",
+        "-c:a", "aac", "-b:a", "128k",
+        "-movflags", "+faststart",
+        out,
+      ]);
+      try { fs.unlinkSync(tmp); } catch (e) {}
+    } catch (e) {
+      log("quality re-encode failed for " + quality + ": " + e.message.slice(0, 120));
+      try { fs.unlinkSync(tmp); } catch (e2) {}
+      throw e;
+    }
+    log("quality ready " + key);
+    return out;
+  }));
+}
+
+function streamFile(req, res, file, contentType) {
+  const stat = fs.statSync(file);
+  const range = req.headers.range;
+  if (range) {
+    const m = /bytes=(\d+)-(\d*)/.exec(range);
+    const start = m ? parseInt(m[1], 10) : 0;
+    const end = m && m[2] ? parseInt(m[2], 10) : stat.size - 1;
+    if (isFinite(start) && start < stat.size && end >= start) {
+      res.writeHead(206, {
+        "Content-Type": contentType,
+        "Content-Range": "bytes " + start + "-" + end + "/" + stat.size,
+        "Accept-Ranges": "bytes",
+        "Content-Length": end - start + 1,
+        "Cache-Control": "no-store",
+      });
+      fs.createReadStream(file, { start, end }).pipe(res);
+      return;
+    }
+  }
+  res.writeHead(200, {
+    "Content-Type": contentType,
+    "Content-Length": stat.size,
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "no-store",
+  });
+  fs.createReadStream(file).pipe(res);
+}
+
+async function proxyMedia(req, res, cdnUrl) {
+  const range = req.headers.range;
+  const headers = { "User-Agent": DESKTOP_UA };
+  const isTikTok = /tiktok|tikcdn|bytedance|byteoversea|muscdn|ibyteimg|byteimg|akamaized|bytedn/i.test(cdnUrl);
+  if (isTikTok) headers.Referer = "https://www.tiktok.com/";
+  if (range) headers.Range = range;
+  const r = await fetch(cdnUrl, { headers, redirect: "follow", signal: AbortSignal.timeout(30000) });
+  if (!r.ok) throw new Error("upstream " + r.status);
+  const buf = Buffer.from(await r.arrayBuffer());
+  const out = { "Cache-Control": "no-store", "Content-Type": r.headers.get("content-type") || "application/octet-stream" };
+  if (range) {
+    out["Content-Range"] = r.headers.get("content-range");
+    out["Accept-Ranges"] = "bytes";
+  }
+  out["Content-Length"] = buf.length;
+  const filename = req.query.filename;
+  if (filename) {
+    out["Content-Disposition"] = 'attachment; filename="' + String(filename).replace(/[^\w.\s-]/g, "").slice(0, 100) + '"';
+  }
+  res.writeHead(r.status, out);
+  res.end(buf);
+}
+
+app.get("/download", async (req, res) => {
+  const cdnUrl = req.query.cdn_url;
+  const format = req.query.format || "mp4";
+  const quality = req.query.quality;
+  if (!cdnUrl || !isAllowedMediaUrl(cdnUrl)) {
+    return res.status(400).json({ code: "invalid_url", detail: "Invalid media URL." });
+  }
+  try {
+    if (format === "mp3") {
+      const file = await convertToMp3File(cdnUrl);
+      return streamFile(req, res, file, "audio/mpeg");
+    }
+    if (quality && QUALITY_HEIGHT[quality]) {
+      const file = await convertToQualityFile(cdnUrl, quality);
+      return streamFile(req, res, file, "video/mp4");
+    }
+    return await proxyMedia(req, res, cdnUrl);
+  } catch (e) {
+    log("download error: " + e.message);
+    if (!res.headersSent) {
+      res.status(502).json({ code: "download_failed", detail: "An error occurred, please try again." });
+    }
+  }
+});
+
+app.get("/img", async (req, res) => {
+  const u = req.query.u;
+  if (!u || !isAllowedMediaUrl(u)) {
+    return res.status(400).json({ code: "invalid_url", detail: "Invalid image URL." });
+  }
+  const hit = imageCache.get(u);
+  if (hit && Date.now() - hit.ts < 60 * 60 * 1000) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", hit.type);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    return res.send(hit.buf);
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const r = await fetch(u, {
+      headers: { "User-Agent": MOBILE_UA, Referer: "https://www.tiktok.com/" },
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!r.ok) throw new Error("upstream " + r.status);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", r.headers.get("content-type") || "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    const buf = Buffer.from(await r.arrayBuffer());
+    imageCache.set(u, { ts: Date.now(), type: r.headers.get("content-type") || "image/jpeg", buf });
+    if (imageCache.size > 200) {
+      let oldestKey = null;
+      let oldestTs = Infinity;
+      for (const [k, rec] of imageCache) {
+        if (rec.ts < oldestTs) {
+          oldestTs = rec.ts;
+          oldestKey = k;
+        }
+      }
+      if (oldestKey != null) imageCache.delete(oldestKey);
+    }
+    res.send(buf);
+  } catch (e) {
+    res.status(502).json({ code: "download_failed", detail: "An error occurred, please try again." });
+  }
+});
+
+app.get("/sitemap.xml", (req, res) => {
+  const host = req.get("host") || "localhost";
+  const proto = req.protocol || "http";
+  const base = proto + "://" + host;
+  const pages = [
+    ["/", "daily", "1.0", "2026-08-17"],
+    ["/es", "daily", "0.9", "2026-08-18"],
+    ["/pt", "daily", "0.9", "2026-08-18"],
+    ["/fr", "daily", "0.9", "2026-08-18"],
+    ["/de", "daily", "0.9", "2026-08-18"],
+    ["/id", "daily", "0.9", "2026-08-18"],
+    ["/tr", "daily", "0.9", "2026-08-18"],
+    ["/ru", "daily", "0.9", "2026-08-18"],
+    ["/tiktok-video-download", "weekly", "0.9", "2026-08-18"],
+    ["/how-to-download-tiktok-videos", "weekly", "0.8", "2026-08-17"],
+    ["/tiktok-mp3-downloader", "weekly", "0.7", "2026-08-17"],
+    ["/douyin-downloader", "weekly", "0.7", "2026-08-17"],
+    ["/tiktok-slideshow-downloader", "weekly", "0.7", "2026-08-18"],
+    ["/tiktok-downloader-for-iphone", "weekly", "0.7", "2026-08-18"],
+    ["/tiktok-downloader-for-android", "weekly", "0.7", "2026-08-18"],
+    ["/tiktok-watermark-remover", "weekly", "0.7", "2026-08-18"],
+    ["/snaptik-alternative", "weekly", "0.7", "2026-08-18"],
+    ["/is-tiktok-downloader-safe", "weekly", "0.6", "2026-08-18"],
+    ["/blog", "weekly", "0.6", "2026-08-17"],
+    ["/blog/downtik-vs-ssstik-vs-snaptik", "monthly", "0.6", "2026-08-17"],
+    ["/blog/tiktok-downloader-for-pc", "weekly", "0.7", "2026-08-17"],
+    ["/about", "monthly", "0.3", "2026-08-17"],
+    ["/privacy-policy", "yearly", "0.2", "2026-08-17"],
+    ["/dmca", "yearly", "0.2", "2026-08-17"],
+    ["/terms-of-use", "yearly", "0.2", "2026-08-17"],
+    ["/cookie-policy", "yearly", "0.2", "2026-08-17"],
+    ["/disclaimer", "yearly", "0.2", "2026-08-17"],
+  ];
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  const xml =
+    '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
+    pages
+      .map(
+        ([p, freq, pri, lastmod]) =>
+          "<url><loc>" +
+          base +
+          p +
+          "</loc><lastmod>" +
+          lastmod +
+          "</lastmod><changefreq>" +
+          freq +
+          "</changefreq><priority>" +
+          pri +
+          "</priority></url>"
+      )
+      .join("") +
+    "</urlset>";
+  if ((req.headers["accept-encoding"] || "").includes("gzip")) {
+    sendGzip(res, Buffer.from(xml), "application/xml; charset=utf-8");
+  } else {
+    res.send(xml);
+  }
+});
+
+app.get("/robots.txt", (req, res) => {
+  const host = req.get("host") || "localhost";
+  const proto = req.protocol || "http";
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.send(
+    "User-agent: *\n" +
+      "Allow: /\n" +
+      "Disallow: /output/\n" +
+      "Disallow: /deploy/\n" +
+      "Disallow: /server.js\n" +
+      "Disallow: /package.json\n" +
+      "Disallow: /package-lock.json\n" +
+      "Disallow: /*.html$\n\n" +
+      "Sitemap: " +
+      proto +
+      "://" +
+      host +
+      "/sitemap.xml\n"
+  );
+});
+
+app.use((req, res, next) => {
+  const p = req.path;
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  if (p.length > 1 && p.endsWith("/")) {
+    const clean = p.replace(/\/+$/, "") || "/";
+    return res.redirect(301, clean + (req.url.replace(p, "")));
+  }
+  if (isHtmlPath(p)) {
+    let clean = p.replace(/\.html?$/i, "");
+    if (clean.endsWith("/index")) clean = clean.slice(0, -"/index".length) || "/";
+    return res.redirect(301, clean);
+  }
+  next();
+});
+
+const subPages = [
+  "/how-to-download-tiktok-videos",
+  "/tiktok-mp3-downloader",
+  "/douyin-downloader",
+  "/tiktok-video-download",
+  "/snaptik-alternative",
+  "/tiktok-slideshow-downloader",
+  "/tiktok-downloader-for-iphone",
+  "/tiktok-downloader-for-android",
+  "/tiktok-watermark-remover",
+  "/is-tiktok-downloader-safe",
+  "/about",
+  "/privacy-policy",
+  "/dmca",
+  "/terms-of-use",
+  "/cookie-policy",
+  "/disclaimer",
+];
+subPages.forEach((p) => {
+  app.get(p, serveSubPage(p.slice(1)));
+});
+
+app.get("/blog", serveSubPage("blog"));
+app.get("/blog/downtik-vs-ssstik-vs-snaptik", serveSubPage("blog/downtik-vs-ssstik-vs-snaptik"));
+app.get("/blog/tiktok-downloader-for-pc", serveSubPage("blog/tiktok-downloader-for-pc"));
+
+app.use(
+  "/output",
+  (req, res) => {
+    res.status(403).end();
+  }
+);
+
+app.get("/", (req, res) => serveHtmlFile(req, res, path.join(__dirname, "index.html"), "en"));
+
+app.use((req, res, next) => {
+  if (req.path.indexOf("/i18n/") === 0) return res.status(403).end();
+  next();
+});
+
+app.use(
+  express.static(__dirname, {
+    setHeaders(res, filePath) {
+      if (/[\\/]wp-content[\\/]|[\\/]assets[\\/]/.test(filePath)) {
+        res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+      } else {
+        res.setHeader("Cache-Control", "no-cache, must-revalidate");
+      }
+    },
+  })
+);
+
+app.get("/:lang", (req, res, next) => {
+  if (!LANGS.includes(req.params.lang)) return next();
+  if (req.params.lang === "en") return res.redirect(301, "/");
+  serveHtmlFile(req, res, path.join(__dirname, "index.html"), req.params.lang);
+});
+
+app.get("*", (req, res) => {
+  if (req.path.indexOf("/api/") === 0) {
+    return res.status(404).json({ status: "error", code: 404, message: "No data found. Please try again." });
+  }
+  send404(req, res);
+});
+
+app.listen(PORT, () => {
+  console.log("DownTik v2 running at http://localhost:" + PORT);
+});

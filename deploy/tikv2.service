@@ -1,0 +1,16 @@
+[Unit]
+Description=DownTik v2 TikTok downloader
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tikv2
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+# Node memory cap: matches the 700M pm2 limit; raise on larger VMs
+Environment=NODE_OPTIONS=--max-old-space-size=700
+
+[Install]
+WantedBy=multi-user.target
