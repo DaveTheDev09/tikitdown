@@ -965,21 +965,23 @@ async function proxyMedia(req, res, cdnUrl) {
   const isTikTok = /tiktok|tikcdn|bytedance|byteoversea|muscdn|ibyteimg|byteimg|akamaized|bytedn/i.test(cdnUrl);
   if (isTikTok) headers.Referer = "https://www.tiktok.com/";
   if (range) headers.Range = range;
-  const r = await fetch(cdnUrl, { headers, redirect: "follow", signal: AbortSignal.timeout(30000) });
+  const r = await fetch(cdnUrl, { headers, redirect: "follow", signal: AbortSignal.timeout(60000) });
   if (!r.ok) throw new Error("upstream " + r.status);
-  const buf = Buffer.from(await r.arrayBuffer());
   const out = { "Cache-Control": "no-store", "Content-Type": r.headers.get("content-type") || "application/octet-stream" };
+  const contentLength = r.headers.get("content-length");
+  if (contentLength) out["Content-Length"] = contentLength;
   if (range) {
     out["Content-Range"] = r.headers.get("content-range");
     out["Accept-Ranges"] = "bytes";
   }
-  out["Content-Length"] = buf.length;
   const filename = req.query.filename;
   if (filename) {
     out["Content-Disposition"] = 'attachment; filename="' + String(filename).replace(/[^\w.\s-]/g, "").slice(0, 100) + '"';
   }
   res.writeHead(r.status, out);
-  res.end(buf);
+  const nodeStream = Readable.fromWeb(r.body);
+  nodeStream.pipe(res);
+  nodeStream.on('error', () => { try { res.end(); } catch(e) {} });
 }
 
 app.get("/download", async (req, res) => {
