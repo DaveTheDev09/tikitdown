@@ -985,19 +985,10 @@ async function proxyMedia(req, res, cdnUrl) {
 app.get("/download", async (req, res) => {
   const cdnUrl = req.query.cdn_url;
   const format = req.query.format || "mp4";
-  const quality = req.query.quality;
   if (!cdnUrl || !isAllowedMediaUrl(cdnUrl)) {
     return res.status(400).json({ code: "invalid_url", detail: "Invalid media URL." });
   }
   try {
-    if (format === "mp3") {
-      const file = await convertToMp3File(cdnUrl);
-      return streamFile(req, res, file, "audio/mpeg");
-    }
-    if (quality && QUALITY_HEIGHT[quality]) {
-      const file = await convertToQualityFile(cdnUrl, quality);
-      return streamFile(req, res, file, "video/mp4");
-    }
     return await proxyMedia(req, res, cdnUrl);
   } catch (e) {
     log("download error: " + e.message);
