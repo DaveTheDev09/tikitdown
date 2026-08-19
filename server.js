@@ -518,8 +518,9 @@ function mapTikwmData(j) {
     type: photos.length > 0 ? "photo" : "video",
     video: d.play
       ? {
-          url: d.play,
+          url: d.hdplay || d.play,
           url_nwm: d.play,
+          url_hd: d.hdplay || d.play,
           watermark: false,
           width: parseInt(d.width || d.video_width || "0", 10) || 0,
           height: parseInt(d.height || d.video_height || "0", 10) || 0,
@@ -564,18 +565,24 @@ async function searchDirect(url) {
 
 async function getVideoData(url) {
   let data = null;
+  let source = "unknown";
+  // Try tikwm first - returns URLs from tikwm's own CDN (no TikTok headers needed)
   try {
-    data = await searchDirect(url);
+    data = await searchTikwm(url);
+    if (data) source = "tikwm";
   } catch (e) {
     data = null;
   }
   if (!data) {
+    // Fallback to direct TikTok scrape
     try {
-      data = await searchTikwm(url);
+      data = await searchDirect(url);
+      if (data) source = "direct";
     } catch (e) {
       data = null;
     }
   }
+  if (data) data._source = source;
   return data;
 }
 
@@ -688,33 +695,36 @@ async function getRemoteSize(url) {
 function toTemplateData(data, sizes) {
   const qualities = {};
   sizes = sizes || { video: 0, music: 0 };
+  const source = data._source || "unknown";
+  const isDirect = source === "direct";
   if (data.video && data.video.url_nwm) {
+    const hdUrl = data.video.url_hd || data.video.url_nwm;
+    const sdUrl = data.video.url_nwm;
     qualities.best = {
-      cdn_url: data.video.url_nwm,
+      cdn_url: hdUrl,
       ext: "mp4",
       height: data.video.height || 0,
       width: data.video.width || 0,
       label: "original",
       filesize: sizes.video || 0,
+      need_proxy: isDirect,
     };
-    // Add 480p quality for SD button when source is tall enough
-    if ((data.video.height || 0) >= 480) {
-      qualities["480p"] = {
-        cdn_url: data.video.url_nwm,
-        ext: "mp4",
-        height: 480,
-        width: Math.round((data.video.width || 854) * 480 / (data.video.height || 480)),
-        label: "480p",
-        filesize: sizes.video || 0,
-      };
-    }
+    qualities.sd = {
+      cdn_url: sdUrl,
+      ext: "mp4",
+      height: 0,
+      width: 0,
+      label: "sd",
+      filesize: sizes.video || 0,
+      need_proxy: isDirect,
+    };
   }
   if (data.music && data.music.url) {
-    qualities.audio = { cdn_url: data.music.url, ext: "mp3", label: "audio", filesize: sizes.music || 0 };
+    qualities.audio = { cdn_url: data.music.url, ext: "mp3", label: "audio", filesize: sizes.music || 0, need_proxy: isDirect };
   }
   const images = data.photos && data.photos.length ? data.photos.map((p) => proxyImageUrl(p.url)) : [];
   return {
-    source: "hybrid",
+    source,
     qualities,
     images,
     thumbnail: data.cover ? proxyImageUrl(data.cover) : "",
@@ -749,16 +759,16 @@ app.post("/info", async (req, res) => {
           label: "original",
           filesize: 14621544,
         },
-        "480p": {
-          cdn_url: "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+        sd: {
+          cdn_url: "https://media.w3.org/2010/05/sintel/trailer.mp4",
           ext: "mp4",
-          height: 480,
-          width: 854,
-          label: "480p",
-          filesize: 3000000,
+          height: 360,
+          width: 640,
+          label: "sd",
+          filesize: 5000000,
         },
         audio: {
-          cdn_url: "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+          cdn_url: "https://media.w3.org/2010/05/sintel/trailer.mp3",
           ext: "mp3",
           label: "audio",
           filesize: 1500000,
@@ -779,9 +789,6 @@ app.post("/info", async (req, res) => {
     return res.status(400).json({ code: "invalid_url", detail: "Wrong link format. Paste the TikTok URL and try again!" });
   }
 
-  if (!clean) {
-    return res.status(400).json({ code: "invalid_url", detail: "Wrong link format. Paste the TikTok URL and try again!" });
-  }
   let data = null;
   try {
     data = await getVideoDataCached(clean);
@@ -988,10 +995,12 @@ app.get("/download", async (req, res) => {
     return res.status(400).json({ code: "invalid_url", detail: "Invalid media URL." });
   }
   try {
-    const headers = {
-      "User-Agent": DESKTOP_UA,
-      "Referer": "https://www.tiktok.com/",
-    };
+    const isTikTok = /tiktok|tikcdn|bytedance|byteoversea|muscdn|ibyteimg|byteimg|akamaized|bytedn/i.test(cdnUrl);
+    const headers = {};
+    if (isTikTok) {
+      headers["User-Agent"] = DESKTOP_UA;
+      headers["Referer"] = "https://www.tiktok.com/";
+    }
     const r = await fetch(cdnUrl, { headers, redirect: "follow", signal: AbortSignal.timeout(60000) });
     if (!r.ok) throw new Error("upstream " + r.status);
     const filename = req.query.filename || "tikdownloader.mp4";
@@ -1004,6 +1013,42 @@ app.get("/download", async (req, res) => {
     log("download error: " + e.message);
     if (!res.headersSent) {
       res.status(502).json({ code: "download_failed", detail: "Download failed, try again." });
+    }
+  }
+});
+
+// Direct CDN proxy (like snapcdn.app - server fetches with proper headers, sends to browser)
+app.get("/api/fetch", async (req, res) => {
+  const u = req.query.url;
+  const name = req.query.name || "tikdownloader.mp4";
+  if (!u) {
+    return res.status(400).json({ code: "invalid_url", detail: "Invalid URL." });
+  }
+  try {
+    const isTikTok = /tiktok|tikcdn|bytedance|byteoversea|muscdn|ibyteimg|byteimg|akamaized|bytedn|tikwm/i.test(u);
+    const opts = { redirect: "follow", signal: AbortSignal.timeout(60000) };
+    if (isTikTok) {
+      opts.headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Referer": "https://www.tiktok.com/",
+        "Accept": "video/mp4,*/*",
+      };
+    }
+    const r = await fetch(u, opts);
+    if (!r.ok) {
+      log("fetch upstream " + r.status + " for " + u.substring(0, 80));
+      return res.status(502).json({ code: "download_failed", detail: "Upstream returned " + r.status });
+    }
+    res.setHeader("Content-Type", r.headers.get("content-type") || "video/mp4");
+    res.setHeader("Content-Disposition", 'attachment; filename="' + String(name).replace(/[^\w.\s-]/g, "").slice(0, 100) + '"');
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.send(buf);
+  } catch (e) {
+    log("fetch error: " + e.message);
+    if (!res.headersSent) {
+      res.status(502).json({ code: "download_failed", detail: "Download failed: " + e.message });
     }
   }
 });

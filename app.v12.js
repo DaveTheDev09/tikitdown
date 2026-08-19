@@ -1128,47 +1128,86 @@
       dlActions.innerHTML = '';
 
       var best = downloadUiState.qualities.best;
+      var sd = downloadUiState.qualities.sd;
       var audio = downloadUiState.qualities.audio;
       if (!best && !audio) return;
 
-      var dlBase = downloadUiState.dlBase || '';
-      var cleanUrl = downloadUiState.url || '';
+      var dlBase = downloadUiState.dlBase || window.location.origin;
+      var allBtns = [];
 
-      // Build download URL exactly like tikdownloader.io /api/fetch
-      function buildFetchUrl(mediaUrl, type, name) {
-        return dlBase + '/download?source=scrape&cdn_url=' + encodeURIComponent(mediaUrl) + '&filename=' + encodeURIComponent(name);
+      // Build download URL - if need_proxy, go through server; otherwise direct
+      function getDlUrl(mediaUrl, name, needProxy) {
+        if (!needProxy) return mediaUrl;
+        return dlBase + '/api/fetch?url=' + encodeURIComponent(mediaUrl) + '&name=' + encodeURIComponent(name);
       }
 
-      // Video download button (blue) - direct <a> link, instant
+      // Wrap button with click handler for animations
+      function wrapDlBtn(btn, label) {
+        allBtns.push(btn);
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          if (btn.classList.contains('is-busy')) return;
+          allBtns.forEach(function (b) {
+            if (b !== btn) b.style.display = 'none';
+          });
+          btn.classList.add('is-busy');
+          btn.setAttribute('data-original-text', btn.textContent || btn.innerHTML);
+          btn.innerHTML = '<span class="dl-spinner"></span> Preparing ' + label + '...';
+          showInlineSteps(['Preparing ' + label + ' file', 'Downloading to device', 'Complete']);
+          setInlineStepActive(0);
+          setTimeout(function () { setInlineStepActive(1); }, 1500);
+          window.location.href = btn.href;
+          setTimeout(function () {
+            btn.classList.remove('is-busy');
+            btn.classList.add('dl-success');
+            var origText = btn.getAttribute('data-original-text');
+            btn.innerHTML = '\u2713 ' + origText + ' - Complete!';
+            setInlineStepActive(2);
+            setTimeout(function () {
+              allBtns.forEach(function (b) {
+                b.style.display = '';
+                b.classList.remove('is-busy');
+                if (b.classList.contains('dl-success')) {
+                  var orig = b.getAttribute('data-original-text');
+                  if (orig) b.innerHTML = orig;
+                  b.classList.remove('dl-success');
+                }
+              });
+            }, 3000);
+          }, 4000);
+        });
+      }
+
+      // Video download button (blue)
       if (best) {
-        var videoUrl = buildFetchUrl(best.cdn_url, 'video', buildTitleFilename('SD') + '.mp4');
         var vidBtn = document.createElement('a');
         vidBtn.className = 'dl-video-btn';
-        vidBtn.href = videoUrl;
+        vidBtn.href = getDlUrl(best.cdn_url, buildTitleFilename('SD') + '.mp4', best.need_proxy);
         vidBtn.download = '';
         vidBtn.textContent = '\u2193 ' + td('downloadVideo') + ' (No Watermark)';
+        wrapDlBtn(vidBtn, 'SD');
         dlActions.appendChild(vidBtn);
       }
 
-      // HD button (orange) - direct <a> link, instant
+      // HD button (orange)
       if (best) {
-        var hdUrl = buildFetchUrl(best.cdn_url, 'video', buildTitleFilename('HD') + '.mp4');
         var hdBtn = document.createElement('a');
         hdBtn.className = 'dl-hd-btn';
-        hdBtn.href = hdUrl;
+        hdBtn.href = getDlUrl(best.cdn_url, buildTitleFilename('HD') + '.mp4', best.need_proxy);
         hdBtn.download = '';
         hdBtn.innerHTML = '\u2193 ' + td('downloadVideo') + ' HD (No Watermark) <span class="dl-hd-badge">HD</span>';
+        wrapDlBtn(hdBtn, 'HD');
         dlActions.appendChild(hdBtn);
       }
 
-      // Audio button - direct <a> link
+      // Audio button
       if (audio) {
-        var audioUrl = buildFetchUrl(audio.cdn_url, 'audio', buildFilename(cleanUrl, 'mp3') + '.mp3');
         var audioBtn = document.createElement('a');
         audioBtn.className = 'dl-audio-btn';
-        audioBtn.href = audioUrl;
+        audioBtn.href = getDlUrl(audio.cdn_url, buildFilename(downloadUiState.url || '', 'mp3') + '.mp3', audio.need_proxy);
         audioBtn.download = '';
         audioBtn.textContent = td('downloadAudio') + ' (MP3)';
+        wrapDlBtn(audioBtn, 'MP3');
         dlActions.appendChild(audioBtn);
       }
 
