@@ -541,26 +541,17 @@ function mapTikwmData(j) {
 }
 
 async function searchCobalt(url) {
-  // Parallel: video download + audio download + metadata (oEmbed)
-  const [videoRes, audioRes, meta] = await Promise.all([
+  // Parallel: video download + metadata (oEmbed).
+  // Note: cobalt's TikTok audio-only stream returns empty files from datacenter IPs
+  // (known cobalt issue: 0-byte audio), so we point the MP3 button at the video
+  // tunnel and extract the audio server-side with ffmpeg (convert_mp3 flag).
+  const [videoRes, meta] = await Promise.all([
     (async () => {
       try {
         const r = await fetch(COBALT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({ url, videoQuality: "1080", filenameStyle: "basic" }),
-          signal: AbortSignal.timeout(30000),
-        });
-        if (!r.ok) return null;
-        return await r.json();
-      } catch (e) { return null; }
-    })(),
-    (async () => {
-      try {
-        const r = await fetch(COBALT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ url, downloadMode: "audio", filenameStyle: "basic" }),
           signal: AbortSignal.timeout(30000),
         });
         if (!r.ok) return null;
@@ -581,7 +572,6 @@ async function searchCobalt(url) {
 
   const okStatus = (s) => s === "tunnel" || s === "redirect" || s === "stream";
   const videoUrl = videoRes && okStatus(videoRes.status) ? videoRes.url : null;
-  const audioUrl = audioRes && okStatus(audioRes.status) ? audioRes.url : null;
   if (!videoUrl) return null;
 
   const title = (meta && meta.title || "").trim() || (videoRes.filename || "TikTok Video");
@@ -597,8 +587,8 @@ async function searchCobalt(url) {
     view_count: 0,
     type: "video",
     video: { url: videoUrl, url_nwm: videoUrl, url_hd: videoUrl, watermark: false, width: 0, height: 0, need_proxy: true },
-    music: audioUrl
-      ? { title, author: authorName, url: audioUrl, duration: 0, need_proxy: true }
+    music: videoUrl
+      ? { title, author: authorName, url: videoUrl, duration: 0, need_proxy: true, convert_mp3: true }
       : null,
     images: [],
     _source: "cobalt",
@@ -888,7 +878,7 @@ function toTemplateData(data, sizes) {
     };
   }
   if (data.music && data.music.url) {
-    qualities.audio = { cdn_url: data.music.url, ext: "mp3", label: "audio", filesize: sizes.music || 0, need_proxy: needsProxy };
+    qualities.audio = { cdn_url: data.music.url, ext: "mp3", label: "audio", filesize: sizes.music || 0, need_proxy: needsProxy, convert_mp3: !!data.music.convert_mp3 };
   }
   const images = data.photos && data.photos.length ? data.photos.map((p) => proxyImageUrl(p.url)) : [];
   return {
@@ -1189,8 +1179,26 @@ app.get("/download", async (req, res) => {
 app.get("/api/fetch", async (req, res) => {
   const u = req.query.url;
   const name = req.query.name || "tikdownloader.mp4";
+  const mode = req.query.mode || "";
   if (!u) {
     return res.status(400).json({ code: "invalid_url", detail: "Invalid URL." });
+  }
+  if (mode === "mp3") {
+    // Server-side MP3 extraction from the video tunnel (cobalt TikTok audio
+    // streams return empty files, so we extract the audio track ourselves).
+    try {
+      const file = await convertToMp3File(u);
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Disposition", 'attachment; filename="' + String(name).replace(/[^\w.\s-]/g, "").slice(0, 100) + '"');
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return streamFile(req, res, file, "audio/mpeg");
+    } catch (e) {
+      log("mp3 extract error: " + e.message);
+      if (!res.headersSent) {
+        return res.status(502).json({ code: "download_failed", detail: "MP3 extraction failed, please try again." });
+      }
+    }
   }
   try {
     const isTikTok = /tiktok|tikcdn|bytedance|byteoversea|muscdn|ibyteimg|byteimg|akamaized|bytedn|tikwm/i.test(u);

@@ -1134,9 +1134,11 @@
       var allBtns = [];
 
       // Build download URL - if need_proxy, go through server; otherwise direct
-      function getDlUrl(mediaUrl, name, needProxy) {
+      function getDlUrl(mediaUrl, name, needProxy, convertMp3) {
         if (!needProxy) return mediaUrl;
-        return dlBase + '/api/fetch?url=' + encodeURIComponent(mediaUrl) + '&name=' + encodeURIComponent(name);
+        var q = '/api/fetch?url=' + encodeURIComponent(mediaUrl) + '&name=' + encodeURIComponent(name);
+        if (convertMp3) q += '&mode=mp3';
+        return dlBase + q;
       }
 
       // Wrap button with click handler for animations
@@ -1209,7 +1211,7 @@
       if (audio) {
         var audioBtn = document.createElement('a');
         audioBtn.className = 'dl-audio-btn';
-        audioBtn.href = getDlUrl(audio.cdn_url, buildFilename(downloadUiState.url || '', 'mp3') + '.mp3', audio.need_proxy);
+        audioBtn.href = getDlUrl(audio.cdn_url, buildFilename(downloadUiState.url || '', 'mp3') + '.mp3', audio.need_proxy, audio.convert_mp3);
         audioBtn.download = '';
         audioBtn.textContent = td('downloadAudio') + ' (MP3)';
         wrapDlBtn(audioBtn, 'MP3');
