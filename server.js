@@ -984,16 +984,26 @@ async function proxyMedia(req, res, cdnUrl) {
 
 app.get("/download", async (req, res) => {
   const cdnUrl = req.query.cdn_url;
-  const format = req.query.format || "mp4";
   if (!cdnUrl || !isAllowedMediaUrl(cdnUrl)) {
     return res.status(400).json({ code: "invalid_url", detail: "Invalid media URL." });
   }
   try {
-    return await proxyMedia(req, res, cdnUrl);
+    const headers = {
+      "User-Agent": DESKTOP_UA,
+      "Referer": "https://www.tiktok.com/",
+    };
+    const r = await fetch(cdnUrl, { headers, redirect: "follow", signal: AbortSignal.timeout(60000) });
+    if (!r.ok) throw new Error("upstream " + r.status);
+    const filename = req.query.filename || "tikdownloader.mp4";
+    res.setHeader("Content-Type", r.headers.get("content-type") || "video/mp4");
+    res.setHeader("Content-Disposition", 'attachment; filename="' + String(filename).replace(/[^\w.\s-]/g, "").slice(0, 100) + '"');
+    res.setHeader("Cache-Control", "no-store");
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.send(buf);
   } catch (e) {
     log("download error: " + e.message);
     if (!res.headersSent) {
-      res.status(502).json({ code: "download_failed", detail: "An error occurred, please try again." });
+      res.status(502).json({ code: "download_failed", detail: "Download failed, try again." });
     }
   }
 });

@@ -1131,41 +1131,28 @@
       var audio = downloadUiState.qualities.audio;
       if (!best && !audio) return;
 
-      var srcH = best && best.height || 0;
-      var srcSize = best && best.filesize || 0;
-
-      // Build direct download URLs (like tikdownloader.io - no JS needed)
       var dlBase = downloadUiState.dlBase || '';
       var cleanUrl = downloadUiState.url || '';
 
-      function buildDirectUrl(qualityLabel) {
-        var params = new URLSearchParams({
-          source: 'scrape',
-          cdn_url: best.cdn_url,
-          filename: buildTitleFilename(qualityLabel),
-          format: 'mp4',
-          dl_id: makeDlId(),
-          platform_hint: isDouyinUrl(cleanUrl) ? 'douyin' : 'tiktok'
-        });
-        if (best.cookies) params.set('cookies', best.cookies);
-        if (best.cdn_headers) params.set('cdn_headers', best.cdn_headers);
-        return dlBase + '/download?' + params.toString();
+      // Build download URL exactly like tikdownloader.io /api/fetch
+      function buildFetchUrl(mediaUrl, type, name) {
+        return dlBase + '/download?source=scrape&cdn_url=' + encodeURIComponent(mediaUrl) + '&filename=' + encodeURIComponent(name);
       }
 
-      // SD button (blue) - direct <a> link, instant download
+      // Video download button (blue) - direct <a> link, instant
       if (best) {
-        var sdUrl = buildDirectUrl('SD');
-        var sdBtn = document.createElement('a');
-        sdBtn.className = 'dl-video-btn';
-        sdBtn.href = sdUrl;
-        sdBtn.download = '';
-        sdBtn.textContent = '\u2193 ' + td('downloadVideo') + ' (No Watermark)';
-        dlActions.appendChild(sdBtn);
+        var videoUrl = buildFetchUrl(best.cdn_url, 'video', buildTitleFilename('SD') + '.mp4');
+        var vidBtn = document.createElement('a');
+        vidBtn.className = 'dl-video-btn';
+        vidBtn.href = videoUrl;
+        vidBtn.download = '';
+        vidBtn.textContent = '\u2193 ' + td('downloadVideo') + ' (No Watermark)';
+        dlActions.appendChild(vidBtn);
       }
 
-      // HD button (orange) - direct <a> link, instant download
+      // HD button (orange) - direct <a> link, instant
       if (best) {
-        var hdUrl = buildDirectUrl('HD');
+        var hdUrl = buildFetchUrl(best.cdn_url, 'video', buildTitleFilename('HD') + '.mp4');
         var hdBtn = document.createElement('a');
         hdBtn.className = 'dl-hd-btn';
         hdBtn.href = hdUrl;
@@ -1176,17 +1163,10 @@
 
       // Audio button - direct <a> link
       if (audio) {
-        var audioParams = new URLSearchParams({
-          source: 'scrape',
-          cdn_url: audio.cdn_url,
-          filename: buildFilename(cleanUrl, 'mp3'),
-          format: 'mp3',
-          dl_id: makeDlId(),
-          platform_hint: 'tiktok'
-        });
+        var audioUrl = buildFetchUrl(audio.cdn_url, 'audio', buildFilename(cleanUrl, 'mp3') + '.mp3');
         var audioBtn = document.createElement('a');
         audioBtn.className = 'dl-audio-btn';
-        audioBtn.href = dlBase + '/download?' + audioParams.toString();
+        audioBtn.href = audioUrl;
         audioBtn.download = '';
         audioBtn.textContent = td('downloadAudio') + ' (MP3)';
         dlActions.appendChild(audioBtn);
