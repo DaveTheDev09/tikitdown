@@ -539,6 +539,79 @@ function mapTikwmData(j) {
   };
 }
 
+function runYtDlp(url) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-j", "--no-warnings", "--no-check-certificates",
+      "--no-playlist",
+      "--socket-timeout", "20",
+      url,
+    ];
+    const proc = execFile("yt-dlp", args, { timeout: 25000, maxBuffer: 5 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) return reject(err);
+      try {
+        resolve(JSON.parse(stdout));
+      } catch (e) {
+        reject(new Error("Failed to parse yt-dlp output"));
+      }
+    });
+  });
+}
+
+function mapYtDlpData(j) {
+  const formats = j.formats || [];
+  const videoFormats = formats.filter(f => f.vcodec !== "none" && f.acodec !== "none" && f.url);
+  const audioFormats = formats.filter(f => f.vcodec === "none" && f.acodec !== "none" && f.url);
+
+  const bestVideo = videoFormats.sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+  const hdVideo = videoFormats.filter(f => (f.height || 0) >= 720).sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+  const sdVideo = videoFormats.filter(f => (f.height || 0) < 720 && (f.height || 0) >= 360).sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+  const lowVideo = videoFormats.filter(f => (f.height || 0) < 360).sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+  const bestAudio = audioFormats.sort((a, b) => (b.abr || 0) - (a.abr || 0))[0];
+
+  const pick = (f) => f ? {
+    cdn_url: f.url,
+    ext: f.ext || "mp4",
+    height: f.height || 0,
+    width: f.width || 0,
+    label: f.height ? f.height + "p" : f.format_note || "original",
+    filesize: f.filesize || f.filesize_approx || 0,
+    need_proxy: false,
+  } : null;
+
+  const isPhoto = (j._type === "photo") || (j.extractor === "TikTok" && !bestVideo && !j.url);
+  let images = [];
+  if (isPhoto && j.thumbnails) {
+    images = j.thumbnails.map(t => ({ url: t.url, title: "" }));
+  }
+
+  return {
+    aweme_id: j.id || "",
+    title: (j.fulltitle || j.title || "").trim(),
+    author: {
+      name: j.uploader || j.creator || "TikTok User",
+      nickname: j.uploader || j.creator || "TikTok User",
+      avatar: j.channel_follower_count ? "" : "",
+      uniqueId: j.creator || "",
+    },
+    cover: (j.thumbnail || (j.thumbnails && j.thumbnails[0] && j.thumbnails[0].url) || ""),
+    duration: j.duration || 0,
+    create_time: j.upload_date ? Math.floor(new Date(j.upload_date).getTime() / 1000) : 0,
+    view_count: j.view_count || 0,
+    type: isPhoto ? "photo" : "video",
+    video: pick(bestVideo || hdVideo || sdVideo || lowVideo),
+    video_hd: pick(hdVideo || bestVideo),
+    video_sd: pick(sdVideo || lowVideo),
+    music: bestAudio ? {
+      title: j.track || "",
+      author: j.artist || "",
+      url: bestAudio.url,
+      duration: j.duration || 0,
+    } : null,
+    images,
+  };
+}
+
 async function searchTikwm(url) {
   const res = await fetch("https://www.tikwm.com/api/", {
     method: "POST",
@@ -548,6 +621,7 @@ async function searchTikwm(url) {
       Accept: "application/json",
     },
     body: new URLSearchParams({ url }),
+    signal: AbortSignal.timeout(15000),
   });
   if (!res.ok) return null;
   const j = await res.json();
@@ -566,15 +640,30 @@ async function searchDirect(url) {
 async function getVideoData(url) {
   let data = null;
   let source = "unknown";
-  // Try tikwm first - returns URLs from tikwm's own CDN (no TikTok headers needed)
+
+  // 1. Try yt-dlp first (most reliable, works on VPS with datacenter IPs)
   try {
-    data = await searchTikwm(url);
-    if (data) source = "tikwm";
+    const raw = await runYtDlp(url);
+    data = mapYtDlpData(raw);
+    if (data && (data.video || data.images.length > 0)) source = "ytdlp";
+    else data = null;
   } catch (e) {
+    log("yt-dlp failed: " + (e && e.message || e));
     data = null;
   }
+
+  // 2. Fallback to tikwm (only works with vm.tiktok.com short URLs)
   if (!data) {
-    // Fallback to direct TikTok scrape
+    try {
+      data = await searchTikwm(url);
+      if (data) source = "tikwm";
+    } catch (e) {
+      data = null;
+    }
+  }
+
+  // 3. Fallback to direct TikTok scrape
+  if (!data) {
     try {
       data = await searchDirect(url);
       if (data) source = "direct";
@@ -582,6 +671,7 @@ async function getVideoData(url) {
       data = null;
     }
   }
+
   if (data) data._source = source;
   return data;
 }
@@ -696,7 +786,7 @@ function toTemplateData(data, sizes) {
   const qualities = {};
   sizes = sizes || { video: 0, music: 0 };
   const source = data._source || "unknown";
-  const isDirect = source === "direct";
+  const needsProxy = source === "direct" || source === "ytdlp";
   if (data.video && data.video.url_nwm) {
     const hdUrl = data.video.url_hd || data.video.url_nwm;
     const sdUrl = data.video.url_nwm;
@@ -707,7 +797,7 @@ function toTemplateData(data, sizes) {
       width: data.video.width || 0,
       label: "original",
       filesize: sizes.video || 0,
-      need_proxy: isDirect,
+      need_proxy: needsProxy,
     };
     qualities.sd = {
       cdn_url: sdUrl,
@@ -716,11 +806,11 @@ function toTemplateData(data, sizes) {
       width: 0,
       label: "sd",
       filesize: sizes.video || 0,
-      need_proxy: isDirect,
+      need_proxy: needsProxy,
     };
   }
   if (data.music && data.music.url) {
-    qualities.audio = { cdn_url: data.music.url, ext: "mp3", label: "audio", filesize: sizes.music || 0, need_proxy: isDirect };
+    qualities.audio = { cdn_url: data.music.url, ext: "mp3", label: "audio", filesize: sizes.music || 0, need_proxy: needsProxy };
   }
   const images = data.photos && data.photos.length ? data.photos.map((p) => proxyImageUrl(p.url)) : [];
   return {
@@ -1356,6 +1446,18 @@ app.get("*", (req, res) => {
   send404(req, res);
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log("TikItDown v2 running at http://localhost:" + PORT);
+  // Check yt-dlp availability
+  try {
+    await new Promise((resolve, reject) => {
+      execFile("yt-dlp", ["--version"], { timeout: 5000 }, (err, stdout) => {
+        if (err) reject(err);
+        else { console.log("yt-dlp version: " + stdout.trim()); resolve(); }
+      });
+    });
+  } catch (e) {
+    console.warn("WARNING: yt-dlp not found. Install it: pip install yt-dlp");
+    console.warn("Without yt-dlp, TikTok downloads will only work with vm.tiktok.com short URLs via tikwm.");
+  }
 });

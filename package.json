@@ -1,11 +1,12 @@
 {
   "name": "tikdownloader",
   "version": "1.0.0",
-  "description": "Download TikTok videos without watermark (HD quality). Recreated TikDownloader clone.",
+  "description": "TikItDown - Download TikTok videos without watermark (HD quality)",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "pip install yt-dlp || echo 'yt-dlp install skipped'"
   },
   "engines": {
     "node": ">=18"
