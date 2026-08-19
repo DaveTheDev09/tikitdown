@@ -1,14 +1,14 @@
 /**
- * DownTik — front-end app.
- * i18n dictionary is injected into the page as DOWNTIK_I18N.
+ * TikItDown — front-end app.
+ * i18n dictionary is injected into the page as TIKITDOWN_I18N.
  */
 (function () {
   'use strict';
 
-  var supportedLangs = (window.DOWNTIK_I18N && window.DOWNTIK_I18N.supported) || ['en'];
-  var dict = (window.DOWNTIK_I18N && window.DOWNTIK_I18N.strings) || {};
-  var defaultLng = (window.DOWNTIK_I18N && window.DOWNTIK_I18N.defaultLang) || 'en';
-  var routeLng = (window.DOWNTIK_I18N && window.DOWNTIK_I18N.currentLang) || defaultLng;
+  var supportedLangs = (window.TIKITDOWN_I18N && window.TIKITDOWN_I18N.supported) || ['en'];
+  var dict = (window.TIKITDOWN_I18N && window.TIKITDOWN_I18N.strings) || {};
+  var defaultLng = (window.TIKITDOWN_I18N && window.TIKITDOWN_I18N.defaultLang) || 'en';
+  var routeLng = (window.TIKITDOWN_I18N && window.TIKITDOWN_I18N.currentLang) || defaultLng;
 
   var currentLang = routeLng;
 
@@ -35,8 +35,8 @@
         select.value = lang;
       }
     }
-    localStorage.setItem('downtik_lang', lang);
-    document.dispatchEvent(new CustomEvent('downtik:langchange', { detail: { lang: lang } }));
+    localStorage.setItem('tikitdown_lang', lang);
+    document.dispatchEvent(new CustomEvent('tikitdown:langchange', { detail: { lang: lang } }));
   }
 
   function t(key) {
@@ -88,7 +88,7 @@
         if (targetUrl) {
           var absoluteTarget = new URL(targetUrl, window.location.origin).href;
           if (absoluteTarget !== window.location.href) {
-            localStorage.setItem('downtik_lang', targetLang);
+            localStorage.setItem('tikitdown_lang', targetLang);
             window.location.href = absoluteTarget;
             return;
           }
@@ -137,7 +137,7 @@
     var dlImageGrid = document.getElementById('dlImageGrid');
     var dlResultCard = document.getElementById('dlResultCard');
     var dlStatus = document.getElementById('dlStatus');
-    var dlConfig = window.DOWNTIK_DOWNLOADER || {};
+    var dlConfig = window.TIKITDOWN_DOWNLOADER || {};
     var dlDict = dlConfig.i18n || {};
     var apiBase = dlConfig.apiBase || window.location.origin;
     var dlBase = dlConfig.dlBase || window.location.origin;
@@ -375,8 +375,8 @@
     }
 
     // Brand token prepended to every saved filename so files downloaded from this
-    // site carry the DownTik name.
-    var FILENAME_BRAND = 'downtik_';
+    // site carry the TikItDown name.
+    var FILENAME_BRAND = 'tikitdown_';
 
     function getFilenamePrefix(cleanUrl) {
       if (isDouyinUrl(cleanUrl)) return 'douyin_';
@@ -954,9 +954,9 @@
     // Every download control is a real <a> (with role=button): keeping one element
     // type across every state means nothing is ever removed from the DOM mid-click.
     function ensureActionStyles() {
-      if (document.getElementById('downtik-action-styles')) return;
+      if (document.getElementById('tikitdown-action-styles')) return;
       var style = document.createElement('style');
-      style.id = 'downtik-action-styles';
+      style.id = 'tikitdown-action-styles';
       style.textContent = [
         '.dl-actions a,.image-dl-btn,.download-btn{cursor:pointer;text-decoration:none;}',
         // Stands in for the `disabled` attribute an <a> cannot have.
@@ -1019,7 +1019,7 @@
       setStatusByKey('downloading', 'loading');
 
       // Show inline download steps
-      var dlLabel = qualityKey === 'audio' ? 'MP3' : qualityKey === 'best' ? 'HD' : 'SD';
+      var dlLabel = qualityKey === 'audio' ? 'MP3' : qualityKey === 'best' ? 'HD' : 'HD';
       showInlineSteps(['Preparing ' + dlLabel + ' file', 'Downloading to device', 'Complete']);
       setInlineStepActive(0);
 
@@ -1128,48 +1128,86 @@
       dlActions.innerHTML = '';
 
       var best = downloadUiState.qualities.best;
+      var sd = downloadUiState.qualities.sd;
       var audio = downloadUiState.qualities.audio;
       if (!best && !audio) return;
 
-      var srcH = best && best.height || 0;
-      var srcSize = best && best.filesize || 0;
+      var dlBase = downloadUiState.dlBase || window.location.origin;
+      var allBtns = [];
 
-      // SD quality button (blue) - lower quality, smaller file
-      if (best) {
-        var origBtn = makeActionElement('dl-video-btn', '\u2193 ' + td('downloadVideo') + ' (No Watermark)', function (el) {
-          triggerDownload('480p', el, '\u2193 ' + td('downloadVideo') + ' (No Watermark)');
-        });
-        dlActions.appendChild(origBtn);
+      // Build download URL - if need_proxy, go through server; otherwise direct
+      function getDlUrl(mediaUrl, name, needProxy) {
+        if (!needProxy) return mediaUrl;
+        return dlBase + '/api/fetch?url=' + encodeURIComponent(mediaUrl) + '&name=' + encodeURIComponent(name);
       }
 
-      // HD button with ad (orange) - original quality, best video
-      if (best && srcH >= 720) {
+      // Wrap button with click handler for animations
+      function wrapDlBtn(btn, label) {
+        allBtns.push(btn);
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          if (btn.classList.contains('is-busy')) return;
+          allBtns.forEach(function (b) {
+            if (b !== btn) b.style.display = 'none';
+          });
+          btn.classList.add('is-busy');
+          btn.setAttribute('data-original-text', btn.textContent || btn.innerHTML);
+          btn.innerHTML = '<span class="dl-spinner"></span> Preparing ' + label + '...';
+          showInlineSteps(['Preparing ' + label + ' file', 'Downloading to device', 'Complete']);
+          setInlineStepActive(0);
+          setTimeout(function () { setInlineStepActive(1); }, 1500);
+          window.location.href = btn.href;
+          setTimeout(function () {
+            btn.classList.remove('is-busy');
+            btn.classList.add('dl-success');
+            var origText = btn.getAttribute('data-original-text');
+            btn.innerHTML = '\u2713 ' + origText + ' - Complete!';
+            setInlineStepActive(2);
+            setTimeout(function () {
+              allBtns.forEach(function (b) {
+                b.style.display = '';
+                b.classList.remove('is-busy');
+                if (b.classList.contains('dl-success')) {
+                  var orig = b.getAttribute('data-original-text');
+                  if (orig) b.innerHTML = orig;
+                  b.classList.remove('dl-success');
+                }
+              });
+            }, 3000);
+          }, 4000);
+        });
+      }
+
+      // Video download button (blue)
+      if (best) {
+        var vidBtn = document.createElement('a');
+        vidBtn.className = 'dl-video-btn';
+        vidBtn.href = getDlUrl(best.cdn_url, buildTitleFilename('SD') + '.mp4', best.need_proxy);
+        vidBtn.download = '';
+        vidBtn.textContent = '\u2193 ' + td('downloadVideo') + ' (No Watermark)';
+        wrapDlBtn(vidBtn, 'SD');
+        dlActions.appendChild(vidBtn);
+      }
+
+      // HD button (orange)
+      if (best) {
         var hdBtn = document.createElement('a');
         hdBtn.className = 'dl-hd-btn';
-        hdBtn.setAttribute('role', 'button');
-        hdBtn.tabIndex = 0;
-        hdBtn.innerHTML = '\u2193 ' + td('downloadVideo') + ' HD (No Watermark) <span class="dl-hd-badge">HD</span><span class="dl-hd-ad-label">\u{1F4F7} Watch Ad</span>';
-        var hdLabel = '\u2193 ' + td('downloadVideo') + ' HD (No Watermark)';
-        hdBtn.addEventListener('click', function (e) {
-          e.preventDefault();
-          if (hdBtn.classList.contains('is-busy')) return;
-          showAdOverlay(function () {
-            triggerDownload('best', hdBtn, hdLabel);
-          });
-        });
-        hdBtn.addEventListener('keydown', function (e) {
-          if (e.key !== 'Enter' && e.key !== ' ') return;
-          e.preventDefault();
-          hdBtn.click();
-        });
+        hdBtn.href = getDlUrl(best.cdn_url, buildTitleFilename('HD') + '.mp4', best.need_proxy);
+        hdBtn.download = '';
+        hdBtn.innerHTML = '\u2193 ' + td('downloadVideo') + ' HD (No Watermark) <span class="dl-hd-badge">HD</span>';
+        wrapDlBtn(hdBtn, 'HD');
         dlActions.appendChild(hdBtn);
       }
 
       // Audio button
       if (audio) {
-        var audioBtn = makeActionElement('dl-audio-btn', td('downloadAudio') + ' (MP3)', function (el) {
-          triggerDownload('audio', el, td('downloadAudio') + ' (MP3)');
-        });
+        var audioBtn = document.createElement('a');
+        audioBtn.className = 'dl-audio-btn';
+        audioBtn.href = getDlUrl(audio.cdn_url, buildFilename(downloadUiState.url || '', 'mp3') + '.mp3', audio.need_proxy);
+        audioBtn.download = '';
+        audioBtn.textContent = td('downloadAudio') + ' (MP3)';
+        wrapDlBtn(audioBtn, 'MP3');
         dlActions.appendChild(audioBtn);
       }
 

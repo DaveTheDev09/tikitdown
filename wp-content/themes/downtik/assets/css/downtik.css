@@ -521,11 +521,11 @@ h1.hero-title.in {
     border: 2px solid rgba(18,20,28,0.2);
     border-top-color: var(--tk-cyan);
     background: transparent;
-    animation: downtikSpin 1s linear infinite;
+    animation: tikitdownSpin 1s linear infinite;
   }
   .dl-status.success::before { background: var(--tk-cyan); box-shadow: 0 0 14px var(--tk-cyan); }
   .dl-status.error::before { background: var(--tk-pink); box-shadow: 0 0 14px var(--tk-pink); }
-  @keyframes downtikSpin { to { transform: rotate(360deg); } }
+  @keyframes tikitdownSpin { to { transform: rotate(360deg); } }
   .dl-preview {
     margin-top: 0;
     display: grid;
@@ -744,7 +744,8 @@ h1.hero-title.in {
     transition: width .3s ease;
     z-index: 2;
   }
-  .dl-btn-spinner {
+  .dl-btn-spinner,
+  .dl-spinner {
     display: inline-block;
     width: 16px; height: 16px;
     border: 2px solid rgba(255,255,255,0.3);
@@ -757,6 +758,21 @@ h1.hero-title.in {
   }
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Success state */
+  .dl-video-btn.dl-success,
+  .dl-hd-btn.dl-success,
+  .dl-audio-btn.dl-success {
+    background: #16a34a !important;
+    border-color: #16a34a !important;
+    pointer-events: none;
+    animation: successPulse .5s ease;
+  }
+  @keyframes successPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
   }
 
   /* Numbered step badge (inline in card) */

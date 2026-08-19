@@ -1,6 +1,0 @@
-# Replace yourdomain.com with your real domain (DNS A record -> VPS IP).
-# Caddy auto-provisions HTTPS certificates on first start.
-yourdomain.com {
-	encode gzip
-	reverse_proxy 127.0.0.1:3000
-}
