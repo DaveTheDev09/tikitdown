@@ -541,29 +541,65 @@ function mapTikwmData(j) {
 }
 
 async function searchCobalt(url) {
-  const res = await fetch(COBALT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ url, videoQuality: "1080", filenameStyle: "basic" }),
-    signal: AbortSignal.timeout(30000),
-  });
-  if (!res.ok) return null;
-  const j = await res.json();
-  if (j.status !== "tunnel" && j.status !== "redirect" && j.status !== "stream") return null;
-  const videoUrl = j.url;
+  // Parallel: video download + audio download + metadata (oEmbed)
+  const [videoRes, audioRes, meta] = await Promise.all([
+    (async () => {
+      try {
+        const r = await fetch(COBALT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ url, videoQuality: "1080", filenameStyle: "basic" }),
+          signal: AbortSignal.timeout(30000),
+        });
+        if (!r.ok) return null;
+        return await r.json();
+      } catch (e) { return null; }
+    })(),
+    (async () => {
+      try {
+        const r = await fetch(COBALT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ url, downloadMode: "audio", filenameStyle: "basic" }),
+          signal: AbortSignal.timeout(30000),
+        });
+        if (!r.ok) return null;
+        return await r.json();
+      } catch (e) { return null; }
+    })(),
+    (async () => {
+      try {
+        const r = await fetch("https://www.tiktok.com/oembed?url=" + encodeURIComponent(url), {
+          headers: { "User-Agent": DESKTOP_UA, Accept: "application/json" },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!r.ok) return null;
+        return await r.json();
+      } catch (e) { return null; }
+    })(),
+  ]);
+
+  const okStatus = (s) => s === "tunnel" || s === "redirect" || s === "stream";
+  const videoUrl = videoRes && okStatus(videoRes.status) ? videoRes.url : null;
+  const audioUrl = audioRes && okStatus(audioRes.status) ? audioRes.url : null;
   if (!videoUrl) return null;
-  // Cobalt tunnel URLs are already proxied through Cobalt's CDN, no need for our proxy
+
+  const title = (meta && meta.title || "").trim() || (videoRes.filename || "TikTok Video");
+  const authorName = (meta && meta.author_name || "").trim() || "TikTok User";
+
   return {
-    aweme_id: j.filename || "",
-    title: j.filename || "TikTok Video",
-    author: { name: "TikTok User", nickname: "TikTok User", avatar: "", uniqueId: "" },
-    cover: "",
+    aweme_id: (videoRes.filename || "").replace(/\.mp4$/, ""),
+    title,
+    author: { name: authorName, nickname: authorName, avatar: "", uniqueId: "" },
+    cover: (meta && meta.thumbnail_url) || "",
     duration: 0,
     create_time: 0,
     view_count: 0,
     type: "video",
-    video: { url: videoUrl, url_nwm: videoUrl, url_hd: videoUrl, watermark: false, width: 0, height: 0, need_proxy: false },
-    music: null,
+    video: { url: videoUrl, url_nwm: videoUrl, url_hd: videoUrl, watermark: false, width: 0, height: 0, need_proxy: true },
+    music: audioUrl
+      ? { title, author: authorName, url: audioUrl, duration: 0, need_proxy: true }
+      : null,
     images: [],
     _source: "cobalt",
   };
