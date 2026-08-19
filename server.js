@@ -828,7 +828,7 @@ function toTemplateData(data, sizes) {
   const qualities = {};
   sizes = sizes || { video: 0, music: 0 };
   const source = data._source || "unknown";
-  const needsProxy = source === "direct" || source === "ytdlp"; // cobalt and tikwm return direct CDN URLs
+  const needsProxy = source === "direct" || source === "ytdlp" || source === "cobalt"; // cobalt tunnel URLs need attachment header via proxy
   if (data.video && data.video.url_nwm) {
     const hdUrl = data.video.url_hd || data.video.url_nwm;
     const sdUrl = data.video.url_nwm;

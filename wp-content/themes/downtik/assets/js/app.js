@@ -1156,7 +1156,14 @@
           showInlineSteps(['Preparing ' + label + ' file', 'Downloading to device', 'Complete']);
           setInlineStepActive(0);
           setTimeout(function () { setInlineStepActive(1); }, 1500);
-          window.location.href = btn.href;
+          var a = document.createElement('a');
+          a.href = btn.href;
+          a.download = '';
+          a.rel = 'noopener';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
           setTimeout(function () {
             btn.classList.remove('is-busy');
             btn.classList.add('dl-success');
