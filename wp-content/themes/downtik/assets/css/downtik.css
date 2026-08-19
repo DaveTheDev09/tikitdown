@@ -1173,8 +1173,8 @@ h1.hero-title.in {
 
   .vid-bg {
     position: absolute; inset: 0;
-    background:
-      url("/wp-content/uploads/2026/05/folkcat.webp") center center / cover no-repeat,
+background:
+      url("/wp-content/uploads/2026/05/phone-demo.webp") center center / cover no-repeat,
       linear-gradient(180deg, #89c7ee 0%, #58a6dc 48%, #0f5f74 100%);
   }
   .vid-bg::before {
