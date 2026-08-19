@@ -122,8 +122,8 @@ function localizeHtml(raw, lang) {
     currentLang: lang,
     strings: { [lang]: dict, en: i18nDicts.en },
   });
-  // DOWNTIK_DOWNLOADER lives in the same script tag — swap only the I18N line.
-  out = out.replace(/var DOWNTIK_I18N\s*=\s*\{[^\n]*\};/, "var DOWNTIK_I18N = " + inlineDict + ";");
+  // TIKITDOWN_DOWNLOADER lives in the same script tag — swap only the I18N line.
+  out = out.replace(/var TIKITDOWN_I18N\s*=\s*\{[^\n]*\};/, "var TIKITDOWN_I18N = " + inlineDict + ";");
   const hrefs = LANGS.map(
     (l) => '<link rel="alternate" hreflang="' + l + '" href="{{BASE}}' + langUrl(l) + '" />'
   ).join("\n");
@@ -191,7 +191,7 @@ function send404(req, res) {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.send(
-    "<!doctype html><html lang=\"en-US\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Page not found - DownTik</title><meta name=\"robots\" content=\"noindex, nofollow\"></head><body style=\"font-family:system-ui,sans-serif;text-align:center;padding:80px 20px;color:#0f1117\"><h1 style=\"font-size:clamp(28px,5vw,44px)\">404 - Page not found</h1><p>The page you are looking for does not exist.</p><p><a href=\"/\" style=\"color:#0d9488\">Go to DownTik homepage</a></p></body></html>"
+    "<!doctype html><html lang=\"en-US\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Page not found - TikItDown</title><meta name=\"robots\" content=\"noindex, nofollow\"></head><body style=\"font-family:system-ui,sans-serif;text-align:center;padding:80px 20px;color:#0f1117\"><h1 style=\"font-size:clamp(28px,5vw,44px)\">404 - Page not found</h1><p>The page you are looking for does not exist.</p><p><a href=\"/\" style=\"color:#0d9488\">Go to TikItDown homepage</a></p></body></html>"
   );
 }
 
@@ -737,7 +737,7 @@ function toTemplateData(data, sizes) {
 }
 
 app.get("/api", (req, res) => {
-  res.json({ status: "success", message: "DownTik Downloader API", version: "2", token: TOKEN });
+  res.json({ status: "success", message: "TikItDown Downloader API", version: "2", token: TOKEN });
 });
 
 app.post("/info", async (req, res) => {
@@ -1121,7 +1121,7 @@ app.get("/sitemap.xml", (req, res) => {
     ["/snaptik-alternative", "weekly", "0.7", "2026-08-18"],
     ["/is-tiktok-downloader-safe", "weekly", "0.6", "2026-08-18"],
     ["/blog", "weekly", "0.6", "2026-08-17"],
-    ["/blog/downtik-vs-ssstik-vs-snaptik", "monthly", "0.6", "2026-08-17"],
+    ["/blog/tikitdown-vs-ssstik-vs-snaptik", "monthly", "0.6", "2026-08-17"],
     ["/blog/tiktok-downloader-for-pc", "weekly", "0.7", "2026-08-17"],
     ["/about", "monthly", "0.3", "2026-08-17"],
     ["/privacy-policy", "yearly", "0.2", "2026-08-17"],
@@ -1216,7 +1216,7 @@ subPages.forEach((p) => {
 });
 
 app.get("/blog", serveSubPage("blog"));
-app.get("/blog/downtik-vs-ssstik-vs-snaptik", serveSubPage("blog/downtik-vs-ssstik-vs-snaptik"));
+app.get("/blog/tikitdown-vs-ssstik-vs-snaptik", serveSubPage("blog/tikitdown-vs-ssstik-vs-snaptik"));
 app.get("/blog/tiktok-downloader-for-pc", serveSubPage("blog/tiktok-downloader-for-pc"));
 
 app.use(
@@ -1251,6 +1251,104 @@ app.get("/:lang", (req, res, next) => {
   serveHtmlFile(req, res, path.join(__dirname, "index.html"), req.params.lang);
 });
 
+// Clean URL routes for SEO pages
+const SEO_PAGES = [
+  "tiktok-no-watermark",
+  "tiktok-hd-downloader",
+  "tiktok-mp4",
+  "tiktok-photo-downloader",
+  "tiktok-slideshow-downloader",
+  "tiktok-story-downloader",
+  "tiktok-profile-downloader",
+  "tiktok-downloader-mac",
+  "tiktok-downloader-windows",
+  "tiktok-downloader-for-iphone",
+  "tiktok-downloader-for-android",
+  "tiktok-mp3-downloader",
+  "tiktok-video-download",
+  "tiktok-watermark-remover",
+  "how-to-download-tiktok-videos",
+  "how-to-download-tiktok-photos",
+  "how-to-download-tiktok-slideshows",
+  "ssstik-alternative",
+  "snaptik-alternative",
+  "best-tiktok-downloaders",
+  "douyin-downloader",
+  "is-tiktok-downloader-safe",
+  "about",
+  "blog",
+  "terms-of-use",
+  "privacy-policy",
+  "dmca",
+  "disclaimer",
+  "cookie-policy",
+  // Tier 2 - Content type
+  "tiktok-carousel-downloader",
+  "tiktok-image-downloader",
+  "tiktok-live-downloader",
+  "tiktok-avatar-downloader",
+  "tiktok-music-downloader",
+  "tiktok-video-saver",
+  "tiktok-link-downloader",
+  "tiktok-url-downloader",
+  // Tier 3 - Advanced
+  "tiktok-batch-downloader",
+  "tiktok-bulk-downloader",
+  "tiktok-playlist-downloader",
+  "tiktok-video-downloader-api",
+  "tiktok-api",
+  "tiktok-audio-extractor",
+  "tiktok-zip-download",
+  // Tier 4 - Device
+  "tiktok-downloader-ipad",
+  "tiktok-downloader-ios",
+  "tiktok-downloader-pc",
+  "tiktok-downloader-chromebook",
+  // Tier 5 - Browser
+  "tiktok-downloader-chrome",
+  "tiktok-downloader-safari",
+  "tiktok-downloader-firefox",
+  "tiktok-downloader-edge",
+  // Tier 6 - How-to
+  "how-to-download-tiktok-videos-without-watermark",
+  "how-to-save-tiktok-videos",
+  "how-to-download-tiktok-audio",
+  "how-to-download-tiktok-videos-on-iphone",
+  "how-to-download-tiktok-videos-on-android",
+  "how-to-download-tiktok-videos-on-pc",
+  "how-to-download-tiktok-videos-on-mac",
+  "tiktok-downloader-not-working",
+  "tiktok-download-failed",
+  "why-cant-i-download-tiktok-videos",
+  // Tier 7 - Comparison
+  "savetik-alternative",
+  "tikmate-alternative",
+  "tiktokio-alternative",
+  "ssstik-vs-snaptik",
+  "best-tiktok-downloader-without-watermark",
+  "musicallydown-alternative",
+  // Quality pages
+  "tiktok-4k-downloader",
+  "tiktok-1080p-downloader",
+  "tiktok-720p-downloader",
+  "tiktok-480p-downloader",
+  "tiktok-240p-downloader",
+  "tiktok-120p-downloader",
+];
+SEO_PAGES.forEach((slug) => {
+  app.get("/" + slug, (req, res) => {
+    serveHtmlFile(req, res, path.join(__dirname, slug + ".html"));
+  });
+});
+
+// Blog sub-pages
+app.get("/blog/tiktok-downloader-for-pc", (req, res) => {
+  serveHtmlFile(req, res, path.join(__dirname, "blog", "tiktok-downloader-for-pc.html"));
+});
+app.get("/blog/tikitdown-vs-ssstik-vs-snaptik", (req, res) => {
+  serveHtmlFile(req, res, path.join(__dirname, "blog", "tikitdown-vs-ssstik-vs-snaptik.html"));
+});
+
 app.get("*", (req, res) => {
   if (req.path.indexOf("/api/") === 0) {
     return res.status(404).json({ status: "error", code: 404, message: "No data found. Please try again." });
@@ -1259,5 +1357,5 @@ app.get("*", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("DownTik v2 running at http://localhost:" + PORT);
+  console.log("TikItDown v2 running at http://localhost:" + PORT);
 });

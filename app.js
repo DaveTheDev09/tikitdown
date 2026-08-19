@@ -1,14 +1,14 @@
 /**
- * DownTik — front-end app.
- * i18n dictionary is injected into the page as DOWNTIK_I18N.
+ * TikItDown — front-end app.
+ * i18n dictionary is injected into the page as TIKITDOWN_I18N.
  */
 (function () {
   'use strict';
 
-  var supportedLangs = (window.DOWNTIK_I18N && window.DOWNTIK_I18N.supported) || ['en'];
-  var dict = (window.DOWNTIK_I18N && window.DOWNTIK_I18N.strings) || {};
-  var defaultLng = (window.DOWNTIK_I18N && window.DOWNTIK_I18N.defaultLang) || 'en';
-  var routeLng = (window.DOWNTIK_I18N && window.DOWNTIK_I18N.currentLang) || defaultLng;
+  var supportedLangs = (window.TIKITDOWN_I18N && window.TIKITDOWN_I18N.supported) || ['en'];
+  var dict = (window.TIKITDOWN_I18N && window.TIKITDOWN_I18N.strings) || {};
+  var defaultLng = (window.TIKITDOWN_I18N && window.TIKITDOWN_I18N.defaultLang) || 'en';
+  var routeLng = (window.TIKITDOWN_I18N && window.TIKITDOWN_I18N.currentLang) || defaultLng;
 
   var currentLang = routeLng;
 
@@ -35,8 +35,8 @@
         select.value = lang;
       }
     }
-    localStorage.setItem('downtik_lang', lang);
-    document.dispatchEvent(new CustomEvent('downtik:langchange', { detail: { lang: lang } }));
+    localStorage.setItem('tikitdown_lang', lang);
+    document.dispatchEvent(new CustomEvent('tikitdown:langchange', { detail: { lang: lang } }));
   }
 
   function t(key) {
@@ -88,7 +88,7 @@
         if (targetUrl) {
           var absoluteTarget = new URL(targetUrl, window.location.origin).href;
           if (absoluteTarget !== window.location.href) {
-            localStorage.setItem('downtik_lang', targetLang);
+            localStorage.setItem('tikitdown_lang', targetLang);
             window.location.href = absoluteTarget;
             return;
           }
@@ -137,7 +137,7 @@
     var dlImageGrid = document.getElementById('dlImageGrid');
     var dlResultCard = document.getElementById('dlResultCard');
     var dlStatus = document.getElementById('dlStatus');
-    var dlConfig = window.DOWNTIK_DOWNLOADER || {};
+    var dlConfig = window.TIKITDOWN_DOWNLOADER || {};
     var dlDict = dlConfig.i18n || {};
     var apiBase = dlConfig.apiBase || window.location.origin;
     var dlBase = dlConfig.dlBase || window.location.origin;
@@ -375,8 +375,8 @@
     }
 
     // Brand token prepended to every saved filename so files downloaded from this
-    // site carry the DownTik name.
-    var FILENAME_BRAND = 'downtik_';
+    // site carry the TikItDown name.
+    var FILENAME_BRAND = 'tikitdown_';
 
     function getFilenamePrefix(cleanUrl) {
       if (isDouyinUrl(cleanUrl)) return 'douyin_';
@@ -954,9 +954,9 @@
     // Every download control is a real <a> (with role=button): keeping one element
     // type across every state means nothing is ever removed from the DOM mid-click.
     function ensureActionStyles() {
-      if (document.getElementById('downtik-action-styles')) return;
+      if (document.getElementById('tikitdown-action-styles')) return;
       var style = document.createElement('style');
-      style.id = 'downtik-action-styles';
+      style.id = 'tikitdown-action-styles';
       style.textContent = [
         '.dl-actions a,.image-dl-btn,.download-btn{cursor:pointer;text-decoration:none;}',
         // Stands in for the `disabled` attribute an <a> cannot have.

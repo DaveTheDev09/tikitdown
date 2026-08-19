@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en-US" prefix="og: https://ogp.me/ns#">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>TikTok API - Free TikTok Data API - TikItDown</title>
+<meta name="description" content="Access TikTok data through our free API. Get video info, download URLs and metadata programmatically."/>
+<meta name="robots" content="follow, index"/>
+<link rel="canonical" href="/tiktok-api" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="TikTok API - Free TikTok Data API - TikItDown" />
+<meta property="og:description" content="Access TikTok data through our free API. Get video info, download URLs and metadata programmatically." />
+<meta property="og:url" content="/tiktok-api" />
+<meta property="og:site_name" content="TikItDown" />
+<meta property="og:image" content="/wp-content/uploads/2026/05/downtik-og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="TikTok API - Free TikTok Data API - TikItDown" />
+<meta name="twitter:description" content="Access TikTok data through our free API. Get video info, download URLs and metadata programmatically." />
+<meta name="twitter:image" content="/wp-content/uploads/2026/05/downtik-og.png" />
+<link rel="icon" href="/wp-content/uploads/2026/05/downtik-icon.svg" />
+<link rel="shortcut icon" href="/wp-content/uploads/2026/05/downtik-icon.svg" />
+<link rel="apple-touch-icon" href="/wp-content/uploads/2026/05/downtik-icon.svg" />
+<link rel='stylesheet' id='tikitdown-fonts-css' href='https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&#038;family=Inter:wght@400;500;600&#038;family=Geist+Mono:wght@400;500&#038;display=swap' media='all' />
+<link rel='stylesheet' id='tikitdown-base-css' href='/wp-content/themes/downtik/style.css' media='all' />
+<link rel='stylesheet' id='tikitdown-main-css' href='/wp-content/themes/downtik/assets/css/downtik.css?v=5' media='all' />
+<style id="tikitdown-main-inline-css">:root{--tk-cyan:#0d9488;--tk-pink:#ff2d55;--tk-violet:#7c3aed;--bg:#f8f9fb;--ink:#0f1117;--r-sm:10px;--r-md:16px;--r-lg:22px;--r-xl:32px;}</style>
+<style>
+.page-main { max-width: 860px; margin: 0 auto; padding: 72px 24px 96px; }
+.page-main h1 { font-family: var(--serif); font-size: clamp(30px, 4.5vw, 46px); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 18px; }
+.page-main .lede { font-size: 18px; color: var(--ink-2); line-height: 1.7; margin: 0 0 44px; }
+.page-main h2 { font-family: var(--serif); font-size: clamp(22px, 3vw, 30px); margin: 46px 0 14px; letter-spacing: -0.01em; color: var(--ink); }
+.page-main h3 { font-size: 18px; font-weight: 600; margin: 30px 0 10px; color: var(--ink); }
+.page-main p, .page-main li { color: var(--ink-2); line-height: 1.75; font-size: 16px; }
+.page-main p { margin: 0 0 16px; }
+.page-main ul, .page-main ol { margin: 0 0 16px; padding-left: 22px; }
+.page-main li { margin-bottom: 8px; }
+.page-main a { color: var(--tk-cyan); text-decoration: underline; text-underline-offset: 3px; }
+.page-main .cta-box { margin-top: 48px; padding: 32px; border-radius: var(--r-lg); background: linear-gradient(135deg, rgba(13,148,136,0.08), rgba(255,45,85,0.06)); border: 1px solid rgba(13,148,136,0.25); }
+.page-main .cta-box p { margin: 0; }
+.page-main .updated { font-family: var(--mono); font-size: 13px; color: var(--ink-3); margin: 0 0 40px; }
+.page-main .faq { margin-top: 12px; }
+.page-main code { font-family: var(--mono); background: rgba(13,148,136,0.08); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+.page-main pre { background: var(--ink); color: #e2e8f0; padding: 20px; border-radius: var(--r-md); overflow-x: auto; font-size: 14px; line-height: 1.6; margin: 0 0 16px; }
+.page-main pre code { background: none; padding: 0; color: inherit; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"#org","name":"TikItDown","url":"/","logo":{"@id":"/#schema-image-favicon"}},{"@type":"WebPage","@id":"#webpage","url":"/tiktok-api","name":"TikTok API - Free TikTok Data API - TikItDown","description":"Access TikTok data through our free API. Get video info, download URLs and metadata programmatically.","inLanguage":"en-US","dateModified":"2026-08-19","isPartOf":{"@id":"/#website"}},{"@type":"Article","@id":"#article","headline":"TikTok API - Programmatic Access to TikTok Data","description":"Access TikTok data through our free API. Get video info, download URLs and metadata programmatically.","datePublished":"2026-08-19","dateModified":"2026-08-19","inLanguage":"en-US","mainEntityOfPage":{"@id":"#webpage"},"image":{"@id":"/#schema-image-favicon"},"author":{"@type":"Person","name":"TikItDown Team","url":"/about"},"publisher":{"@id":"#org"}},{"@type":"BreadcrumbList","@id":"#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"TikItDown","item":"/"},{"@type":"ListItem","position":2,"name":"TikTok API","item":"/tiktok-api"}]},{"@type":"FAQPage","@id":"#faq","url":"/tiktok-api#faq","inLanguage":"en-US","mainEntity":[{"@type":"Question","name":"What data does the TikTok API provide?","acceptedAnswer":{"@type":"Answer","text":"The API returns video metadata including title, author, duration, view count, like count, and download URLs in various qualities. It also provides user profile data and hashtag information."}},{"@type":"Question","name":"Do I need to authenticate with TikTok?","acceptedAnswer":{"@type":"Answer","text":"No. The TikItDown API handles authentication with TikTok on the backend. You just need to provide the TikTok URL and the API returns the data."}},{"@type":"Question","name":"Is there a free tier?","acceptedAnswer":{"@type":"Answer","text":"Yes. The free tier provides 60 requests per minute with full API access. No credit card or registration required for basic usage."}},{"@type":"Question","name":"Can I access private TikTok data?","acceptedAnswer":{"@type":"Answer","text":"No. The API only provides data from public TikTok content. Private accounts, unlisted videos, and restricted content are not accessible."}},{"@type":"Question","name":"How accurate is the metadata?","acceptedAnswer":{"@type":"Answer","text":"Metadata is fetched directly from TikTok in real-time, so it reflects the current state of the video. View counts, like counts, and other metrics update each time you make a request."}}]}</script>
+</head>
+<body class="lang-en tikitdown-front">
+<div class="ambient" aria-hidden="true"><div class="ambient-3"></div></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="stage">
+<header class="nav" role="banner">
+  <div class="nav-shell">
+    <a href="/" class="brand">
+      <span class="brand-kicker"><img src="/wp-content/uploads/2026/05/downtik-icon.svg" alt="Download icon" /></span>
+      TikItDown<span style="color: var(--tk-pink); font-style: normal;">.</span>
+    </a>
+    <nav class="nav-links" role="navigation" aria-label="Primary">
+      <a href="/">TikTok downloader</a>
+      <a href="/tiktok-no-watermark">No Watermark</a>
+      <a href="/tiktok-photo-downloader">Photos</a>
+      <a href="/tiktok-mp3-downloader">MP3</a>
+      <a href="/how-to-download-tiktok-videos">Guides</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <button class="nav-menu-btn" id="navMenuBtn" type="button" aria-expanded="false" aria-controls="mobileNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+<div class="mobile-nav" id="mobileNav" hidden>
+  <div class="mobile-nav-inner">
+    <nav class="mobile-nav-links" aria-label="Mobile primary">
+      <a href="/">TikTok downloader</a>
+      <a href="/tiktok-no-watermark">No Watermark</a>
+      <a href="/tiktok-photo-downloader">Photos</a>
+      <a href="/tiktok-mp3-downloader">MP3</a>
+      <a href="/how-to-download-tiktok-videos">Guides</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+  </div>
+</div>
+<main class="page-main">
+
+<section class="tool" id="tool">
+  <div class="tool-wrap">
+    <form class="tool-form" id="downloadForm" autocomplete="off">
+      <div class="tool-input">
+        <input type="text" id="urlInput" placeholder="Paste TikTok video link here..." aria-label="TikTok video URL" />
+        <button type="submit" class="tool-btn" id="downloadBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </button>
+      </div>
+      <div class="tool-error" id="toolError" hidden></div>
+    </form>
+    <div class="tool-result" id="toolResult" hidden></div>
+  </div>
+</section>
+
+<h1>TikTok API - Programmatic Access to TikTok Data</h1>
+<p class="lede">Get TikTok video metadata, download URLs, and content information through a simple REST API. No scraping, no authentication headaches - just send a URL and get structured data back.</p>
+<p class="updated">Last updated: August 19, 2026</p>
+
+<h2>What the API provides</h2>
+<p>The TikItDown API gives you programmatic access to TikTok data without building your own scraping infrastructure. For any public TikTok video URL, you can retrieve:</p>
+<ul>
+<li><strong>Video metadata</strong> - title, description, author username, upload date, duration.</li>
+<li><strong>Engagement metrics</strong> - view count, like count, comment count, share count.</li>
+<li><strong>Download URLs</strong> - direct links to the video file in multiple quality levels.</li>
+<li><strong>Thumbnail</strong> - high-resolution thumbnail URL for the video.</li>
+<li><strong>Hashtags</strong> - list of hashtags used in the video's description.</li>
+<li><strong>Music info</strong> - track name, artist, and duration of the sound used.</li>
+</ul>
+
+<h2>Authentication</h2>
+<p>Basic API access requires no authentication. Simply make requests to the endpoints. For higher rate limits and commercial use, register for a free API key and include it in the request header.</p>
+<pre><code>Authorization: Bearer YOUR_API_KEY</code></pre>
+<p>The API key is optional for the free tier (60 requests/minute). Registered users with an API key get 300 requests per minute.</p>
+
+<h2>Endpoints</h2>
+<h3>GET /api/v1/video</h3>
+<p>Fetch metadata and download URLs for a single TikTok video.</p>
+<pre><code>GET /api/v1/video?url=https://www.tiktok.com/@user/video/1234567890</code></pre>
+<p><strong>Response:</strong></p>
+<pre><code>{
+  "status": "success",
+  "data": {
+    "id": "1234567890",
+    "title": "Video caption text",
+    "author": {
+      "username": "creator_name",
+      "nickname": "Display Name",
+      "avatar": "https://..."
+    },
+    "stats": {
+      "views": 150000,
+      "likes": 12000,
+      "comments": 340,
+      "shares": 890
+    },
+    "download": {
+      "no_watermark": "https://cdn.tikitdown.example/...",
+      "watermark": "https://...",
+      "audio_only": "https://..."
+    },
+    "duration": 30,
+    "thumbnail": "https://...",
+    "hashtags": ["funny", "viral"],
+    "music": {
+      "title": "Original Sound",
+      "artist": "creator_name"
+    }
+  }
+}</code></pre>
+
+<h3>GET /api/v1/user</h3>
+<p>Fetch public profile information for a TikTok user.</p>
+<pre><code>GET /api/v1/user?username=creator_name</code></pre>
+
+<h3>GET /api/v1/hashtag</h3>
+<p>Fetch trending data and recent videos for a hashtag.</p>
+<pre><code>GET /api/v1/hashtag?tag=cooking</code></pre>
+
+<h2>Usage examples</h2>
+<h3>Fetch video info</h3>
+<pre><code>const res = await fetch('/api/v1/video?url=' + encodeURIComponent(url));
+const { data } = await res.json();
+console.log(data.title, data.stats.views);</code></pre>
+
+<h3>Bulk metadata collection</h3>
+<pre><code>const urls = ['https://tiktok.com/...', 'https://tiktok.com/...'];
+const results = await Promise.all(
+  urls.map(u => fetch('/api/v1/video?url=' + encodeURIComponent(u)).then(r => r.json()))
+);
+const videos = results.map(r => r.data);</code></pre>
+
+<h2>Limitations</h2>
+<ul>
+<li><strong>Public content only</strong> - private accounts and unlisted videos are not accessible.</li>
+<li><strong>No real-time streaming data</strong> - metrics reflect the state at time of request, not live updates.</li>
+<li><strong>No bulk user scraping</strong> - fetching data for large numbers of users in sequence may hit rate limits.</li>
+<li><strong>Non-commercial on free tier</strong> - commercial use requires a paid plan.</li>
+</ul>
+<p>For download-only functionality without the full metadata API, use the <a href="/tiktok-video-downloader-api">download API</a>. For direct downloading without code, use the <a href="/tiktok-no-watermark">web downloader</a>.</p>
+
+<h2>FAQ</h2>
+<div class="faq">
+<div class="faq-item" aria-expanded="false"><div class="faq-q"><span>What data does the TikTok API provide?</span><span class="faq-toggle">+</span></div><div class="faq-a">The API returns video metadata including title, author, duration, view count, like count, and download URLs in various qualities. It also provides user profile data and hashtag information.</div></div>
+<div class="faq-item" aria-expanded="false"><div class="faq-q"><span>Do I need to authenticate with TikTok?</span><span class="faq-toggle">+</span></div><div class="faq-a">No. The TikItDown API handles authentication with TikTok on the backend. You just need to provide the TikTok URL and the API returns the data.</div></div>
+<div class="faq-item" aria-expanded="false"><div class="faq-q"><span>Is there a free tier?</span><span class="faq-toggle">+</span></div><div class="faq-a">Yes. The free tier provides 60 requests per minute with full API access. No credit card or registration required for basic usage.</div></div>
+<div class="faq-item" aria-expanded="false"><div class="faq-q"><span>Can I access private TikTok data?</span><span class="faq-toggle">+</span></div><div class="faq-a">No. The API only provides data from public TikTok content. Private accounts, unlisted videos, and restricted content are not accessible.</div></div>
+<div class="faq-item" aria-expanded="false"><div class="faq-q"><span>How accurate is the metadata?</span><span class="faq-toggle">+</span></div><div class="faq-a">Metadata is fetched directly from TikTok in real-time, so it reflects the current state of the video. View counts, like counts, and other metrics update each time you make a request.</div></div>
+</div>
+
+<div class="cta-box"><p>Start building with the TikItDown API. <a href="/">Try the web tool</a> to see it in action, then integrate the API into your projects. For download-only endpoints, see the <a href="/tiktok-video-downloader-api">download API docs</a>. Learn more on the <a href="/about">about page</a>.</p></div>
+</main>
+<footer class="footer" style="border-top: 1px solid var(--line-2);">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <a href="/" class="brand" style="font-size: 24px; margin-bottom: 16px;">
+        <span class="brand-kicker"><img src="/wp-content/uploads/2026/05/downtik-icon.svg" alt="Download icon" /></span>
+        TikItDown<span style="color: var(--tk-pink); font-style: normal;">.</span>
+      </a>
+      <p>TikItDown lets you download TikTok videos without watermark, save TikTok photos, and download Douyin videos in HD or 4K quickly without installing an app.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Product</h5>
+      <a href="/">TikTok download</a>
+      <a href="/tiktok-no-watermark">No watermark</a>
+      <a href="/tiktok-photo-downloader">Photo download</a>
+      <a href="/tiktok-mp3-downloader">MP3 download</a>
+      <a href="/how-to-download-tiktok-videos">How-to guides</a>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <a href="/about">About</a>
+      <a href="/">Blog</a>
+      <a href="/#faq">FAQ</a>
+      <a href="mailto:tikitdown@gmail.com">Contact</a>
+    </div>
+    <div class="footer-col">
+      <h5>Legal</h5>
+      <a href="/terms-of-use">Terms</a>
+      <a href="/privacy-policy">Privacy</a>
+      <a href="/dmca">DMCA</a>
+      <a href="/cookie-policy">Cookies</a>
+      <a href="/disclaimer">Disclaimer</a>
+    </div>
+  </div>
+  <div class="footer-bot">
+    <span>&copy; 2026 TIKITDOWN TEAM</span>
+    <span>TIKITDOWN IS NOT AFFILIATED WITH TIKTOK INC.</span>
+  </div>
+</footer>
+</div><!-- /.stage -->
+<script id="tikitdown-app-js" src="/wp-content/themes/downtik/assets/js/app.v12.js"></script>
+</body>
+</html>
