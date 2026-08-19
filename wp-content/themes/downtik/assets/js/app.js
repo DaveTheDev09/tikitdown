@@ -684,15 +684,13 @@
       var rawThumb = data.thumbnail_raw || '';
       var author = data.author ? '<div class="dl-preview__author">' + escHtml(data.author) + '</div>' : '';
       var desc = data.description ? '<div class="dl-preview__desc">' + escHtml(data.description) + '</div>' : '';
-      var views = Number(data.view_count || 0).toLocaleString();
-      var sub = escHtml((data.duration || 0) + 's · ' + views + ' ' + td('views'));
       var thumbHtml = thumb
         ? '<div class="dl-preview__thumb-wrap"><img class="dl-preview__thumb" src="' + escHtml(thumb) + '"' +
           (rawThumb ? ' data-raw-src="' + escHtml(rawThumb) + '"' : '') +
           ' alt="' + escHtml(td('videoThumbnail')) + '" loading="lazy"></div>'
         : '';
       dlPreview.innerHTML = thumbHtml +
-        '<div class="dl-preview__meta">' + author + desc + '<div class="dl-preview__sub">' + sub + '</div></div>';
+        '<div class="dl-preview__meta">' + author + desc + '</div>';
       // Fallback: if proxy thumbnail fails, try raw URL
       var thumbImg = dlPreview.querySelector('.dl-preview__thumb');
       if (thumbImg) {
