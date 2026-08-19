@@ -7,6 +7,7 @@ const { execFile } = require("child_process");
 const { Readable } = require("stream");
 
 const PORT = process.env.PORT || 3000;
+const COBALT_URL = process.env.COBALT_URL || "http://localhost:9000";
 const OUTPUT_DIR = path.join(__dirname, "output");
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
@@ -539,6 +540,35 @@ function mapTikwmData(j) {
   };
 }
 
+async function searchCobalt(url) {
+  const res = await fetch(COBALT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ url, videoQuality: "1080", filenameStyle: "basic" }),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) return null;
+  const j = await res.json();
+  if (j.status !== "tunnel" && j.status !== "redirect" && j.status !== "stream") return null;
+  const videoUrl = j.url;
+  if (!videoUrl) return null;
+  // Cobalt tunnel URLs are already proxied through Cobalt's CDN, no need for our proxy
+  return {
+    aweme_id: j.filename || "",
+    title: j.filename || "TikTok Video",
+    author: { name: "TikTok User", nickname: "TikTok User", avatar: "", uniqueId: "" },
+    cover: "",
+    duration: 0,
+    create_time: 0,
+    view_count: 0,
+    type: "video",
+    video: { url: videoUrl, url_nwm: videoUrl, url_hd: videoUrl, watermark: false, width: 0, height: 0, need_proxy: false },
+    music: null,
+    images: [],
+    _source: "cobalt",
+  };
+}
+
 function runYtDlp(url) {
   return new Promise((resolve, reject) => {
     const args = [
@@ -641,15 +671,27 @@ async function getVideoData(url) {
   let data = null;
   let source = "unknown";
 
-  // 1. Try yt-dlp first (most reliable, works on VPS with datacenter IPs)
+  // 1. Try Cobalt first (fastest, streaming proxy)
   try {
-    const raw = await runYtDlp(url);
-    data = mapYtDlpData(raw);
-    if (data && (data.video || data.images.length > 0)) source = "ytdlp";
+    data = await searchCobalt(url);
+    if (data && data.video) source = "cobalt";
     else data = null;
   } catch (e) {
-    log("yt-dlp failed: " + (e && e.message || e));
+    log("cobalt failed: " + (e && e.message || e));
     data = null;
+  }
+
+  // 2. Fallback to yt-dlp (reliable, works on VPS)
+  if (!data) {
+    try {
+      const raw = await runYtDlp(url);
+      data = mapYtDlpData(raw);
+      if (data && (data.video || data.images.length > 0)) source = "ytdlp";
+      else data = null;
+    } catch (e) {
+      log("yt-dlp failed: " + (e && e.message || e));
+      data = null;
+    }
   }
 
   // 2. Fallback to tikwm (only works with vm.tiktok.com short URLs)
@@ -786,7 +828,7 @@ function toTemplateData(data, sizes) {
   const qualities = {};
   sizes = sizes || { video: 0, music: 0 };
   const source = data._source || "unknown";
-  const needsProxy = source === "direct" || source === "ytdlp";
+  const needsProxy = source === "direct" || source === "ytdlp"; // cobalt and tikwm return direct CDN URLs
   if (data.video && data.video.url_nwm) {
     const hdUrl = data.video.url_hd || data.video.url_nwm;
     const sdUrl = data.video.url_nwm;
@@ -1133,8 +1175,16 @@ app.get("/api/fetch", async (req, res) => {
     res.setHeader("Content-Disposition", 'attachment; filename="' + String(name).replace(/[^\w.\s-]/g, "").slice(0, 100) + '"');
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Access-Control-Allow-Origin", "*");
-    const buf = Buffer.from(await r.arrayBuffer());
-    res.send(buf);
+    const reader = r.body.getReader();
+    const pump = async () => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+      res.end();
+    };
+    await pump();
   } catch (e) {
     log("fetch error: " + e.message);
     if (!res.headersSent) {
@@ -1448,6 +1498,15 @@ app.get("*", (req, res) => {
 
 app.listen(PORT, async () => {
   console.log("TikItDown v2 running at http://localhost:" + PORT);
+  // Check Cobalt availability
+  try {
+    const cobaltRes = await fetch(COBALT_URL, { signal: AbortSignal.timeout(3000) });
+    if (cobaltRes.ok) console.log("Cobalt: connected");
+    else console.warn("Cobalt: responded with " + cobaltRes.status);
+  } catch (e) {
+    console.warn("WARNING: Cobalt not reachable at " + COBALT_URL);
+    console.warn("Install: docker compose up -d cobalt");
+  }
   // Check yt-dlp availability
   try {
     await new Promise((resolve, reject) => {
@@ -1457,7 +1516,6 @@ app.listen(PORT, async () => {
       });
     });
   } catch (e) {
-    console.warn("WARNING: yt-dlp not found. Install it: pip install yt-dlp");
-    console.warn("Without yt-dlp, TikTok downloads will only work with vm.tiktok.com short URLs via tikwm.");
+    console.warn("WARNING: yt-dlp not found. Install: pip install yt-dlp");
   }
 });
