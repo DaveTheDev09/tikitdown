@@ -17,8 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 
 const htmlCache = new Map();
 
-const LANGS = ["en", "es", "pt", "fr", "de", "id", "tr", "ru"];
-const LOCALES = { en: "en_US", es: "es_ES", pt: "pt_BR", fr: "fr_FR", de: "de_DE", id: "id_ID", tr: "tr_TR", ru: "ru_RU" };
+const LANGS = ["en", "es", "pt", "fr", "de", "id", "ms", "it", "nl", "pl", "tr", "ru", "uk", "el", "ro", "cs", "th", "vi", "ko", "ja", "ar", "jv"];
+const LOCALES = { en: "en_US", es: "es_ES", pt: "pt_BR", fr: "fr_FR", de: "de_DE", id: "id_ID", ms: "ms_MY", it: "it_IT", nl: "nl_NL", pl: "pl_PL", tr: "tr_TR", ru: "ru_RU", uk: "uk_UA", el: "el_GR", ro: "ro_RO", cs: "cs_CZ", th: "th_TH", vi: "vi_VN", ko: "ko_KR", ja: "ja_JP", ar: "ar_AR", jv: "jv_JV" };
 const i18nDicts = {};
 for (const l of LANGS) {
   i18nDicts[l] = JSON.parse(fs.readFileSync(path.join(__dirname, "i18n", l + ".json"), "utf8"));
@@ -663,7 +663,13 @@ function mapYtDlpData(j) {
       author: j.artist || "",
       url: bestAudio.url,
       duration: j.duration || 0,
-    } : null,
+    } : (bestVideo ? {
+      title: j.track || "",
+      author: j.artist || "",
+      url: bestVideo.cdn_url || bestVideo.url,
+      duration: j.duration || 0,
+      convert_mp3: true,
+    } : null),
     images,
   };
 }
@@ -855,9 +861,10 @@ function toTemplateData(data, sizes) {
   sizes = sizes || { video: 0, music: 0 };
   const source = data._source || "unknown";
   const needsProxy = source === "direct" || source === "ytdlp" || source === "cobalt"; // cobalt tunnel URLs need attachment header via proxy
-  if (data.video && data.video.url_nwm) {
-    const hdUrl = data.video.url_hd || data.video.url_nwm;
-    const sdUrl = data.video.url_nwm;
+  const videoUrl = data.video && (data.video.url_nwm || data.video.cdn_url);
+  if (videoUrl) {
+    const hdUrl = (data.video_hd && (data.video_hd.url_nwm || data.video_hd.cdn_url)) || (data.video.url_hd || data.video.url_nwm) || videoUrl;
+    const sdUrl = (data.video_sd && (data.video_sd.url_nwm || data.video_sd.cdn_url)) || videoUrl;
     qualities.best = {
       cdn_url: hdUrl,
       ext: "mp4",
@@ -1292,17 +1299,39 @@ app.get("/sitemap.xml", (req, res) => {
     ["/fr", "daily", "0.9", "2026-08-18"],
     ["/de", "daily", "0.9", "2026-08-18"],
     ["/id", "daily", "0.9", "2026-08-18"],
+    ["/ms", "daily", "0.9", "2026-08-22"],
+    ["/it", "daily", "0.9", "2026-08-22"],
+    ["/nl", "daily", "0.9", "2026-08-22"],
+    ["/pl", "daily", "0.9", "2026-08-22"],
     ["/tr", "daily", "0.9", "2026-08-18"],
     ["/ru", "daily", "0.9", "2026-08-18"],
+    ["/uk", "daily", "0.9", "2026-08-22"],
+    ["/el", "daily", "0.9", "2026-08-22"],
+    ["/ro", "daily", "0.9", "2026-08-22"],
+    ["/cs", "daily", "0.9", "2026-08-22"],
+    ["/th", "daily", "0.9", "2026-08-22"],
+    ["/vi", "daily", "0.9", "2026-08-22"],
+    ["/ko", "daily", "0.9", "2026-08-22"],
+    ["/ja", "daily", "0.9", "2026-08-22"],
+    ["/ar", "daily", "0.9", "2026-08-22"],
+    ["/jv", "daily", "0.9", "2026-08-22"],
     ["/tiktok-video-download", "weekly", "0.9", "2026-08-18"],
+    ["/tiktok-no-watermark", "weekly", "0.9", "2026-08-18"],
+    ["/tiktok-photo-downloader", "weekly", "0.8", "2026-08-18"],
+    ["/tiktok-hd-downloader", "weekly", "0.8", "2026-08-18"],
+    ["/tiktok-mp4", "weekly", "0.8", "2026-08-18"],
     ["/how-to-download-tiktok-videos", "weekly", "0.8", "2026-08-17"],
     ["/tiktok-mp3-downloader", "weekly", "0.7", "2026-08-17"],
     ["/douyin-downloader", "weekly", "0.7", "2026-08-17"],
     ["/tiktok-slideshow-downloader", "weekly", "0.7", "2026-08-18"],
     ["/tiktok-downloader-for-iphone", "weekly", "0.7", "2026-08-18"],
     ["/tiktok-downloader-for-android", "weekly", "0.7", "2026-08-18"],
-    ["/tiktok-watermark-remover", "weekly", "0.7", "2026-08-18"],
+    ["/tiktok-downloader-for-pc", "weekly", "0.7", "2026-08-22"],
+    ["/tiktok-downloader-for-mac", "weekly", "0.7", "2026-08-22"],
+    ["/tiktok-downloader-tablet", "weekly", "0.7", "2026-08-22"],
+    ["/ssstik-alternative", "weekly", "0.7", "2026-08-22"],
     ["/snaptik-alternative", "weekly", "0.7", "2026-08-18"],
+    ["/tiktok-watermark-remover", "weekly", "0.7", "2026-08-18"],
     ["/is-tiktok-downloader-safe", "weekly", "0.6", "2026-08-18"],
     ["/blog", "weekly", "0.6", "2026-08-17"],
     ["/blog/tikitdown-vs-ssstik-vs-snaptik", "monthly", "0.6", "2026-08-17"],
@@ -1386,6 +1415,10 @@ const subPages = [
   "/tiktok-slideshow-downloader",
   "/tiktok-downloader-for-iphone",
   "/tiktok-downloader-for-android",
+  "/tiktok-downloader-for-pc",
+  "/tiktok-downloader-for-mac",
+  "/tiktok-downloader-tablet",
+  "/ssstik-alternative",
   "/tiktok-watermark-remover",
   "/is-tiktok-downloader-safe",
   "/about",
@@ -1448,6 +1481,9 @@ const SEO_PAGES = [
   "tiktok-downloader-windows",
   "tiktok-downloader-for-iphone",
   "tiktok-downloader-for-android",
+  "tiktok-downloader-for-pc",
+  "tiktok-downloader-for-mac",
+  "tiktok-downloader-tablet",
   "tiktok-mp3-downloader",
   "tiktok-video-download",
   "tiktok-watermark-remover",

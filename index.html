@@ -38,13 +38,19 @@
 <link rel="icon" href="/wp-content/uploads/2026/05/downtik-icon.svg" />
 <link rel="shortcut icon" href="/wp-content/uploads/2026/05/downtik-icon.svg" />
 <link rel="apple-touch-icon" href="/wp-content/uploads/2026/05/downtik-icon.svg" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="TikItDown" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="color-scheme" content="light dark" />
 
 <!-- TikItDown custom head code -->
 
 
 <link rel='stylesheet' id='tikitdown-fonts-css' href='https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&#038;family=Inter:wght@400;500;600&#038;family=Geist+Mono:wght@400;500&#038;display=swap' media='all' />
 <link rel='stylesheet' id='tikitdown-base-css' href='/wp-content/themes/downtik/style.css' media='all' />
-<link rel='stylesheet' id='tikitdown-main-css' href='/wp-content/themes/downtik/assets/css/downtik.css?v=5' media='all' />
+<link rel='stylesheet' id='tikitdown-main-css' href='/wp-content/themes/downtik/assets/css/downtik.min.css?v=6' media='all' />
 <style id="tikitdown-main-inline-css">
 :root{--tk-cyan:#0d9488;--tk-pink:#ff2d55;--tk-violet:#7c3aed;--bg:#f8f9fb;--ink:#0f1117;--r-sm:10px;--r-md:16px;--r-lg:22px;--r-xl:32px;}
 
@@ -75,17 +81,22 @@
 					TikItDown<span style="color: var(--tk-pink); font-style: normal;">.</span>
 							</a>
 
-			<nav class="nav-links" role="navigation" aria-label="Primary">
-									<a href="/">TikTok downloader</a>
-					<a href="/tiktok-no-watermark">No Watermark</a>
-					<a href="/tiktok-photo-downloader">Photos</a>
-					<a href="/tiktok-mp3-downloader">MP3</a>
-					<a href="/how-to-download-tiktok-videos">Guides</a>
-					<a href="/#faq">FAQ</a>
-							</nav>
+		<nav class="nav-links" role="navigation" aria-label="Primary">
+								<a href="/">TikTok downloader</a>
+				<a href="/tiktok-no-watermark">No Watermark</a>
+				<a href="/tiktok-photo-downloader">Photos</a>
+				<a href="/tiktok-mp3-downloader">MP3</a>
+				<a href="/tiktok-downloader-for-iphone">iPhone</a>
+				<a href="/tiktok-downloader-for-android">Android</a>
+				<a href="/how-to-download-tiktok-videos">Guides</a>
+				<a href="/#faq">FAQ</a>
+						</nav>
 
 <div class="nav-cta">
-			<div class="lang-switch" id="langSwitch" data-lang="en">
+		<button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+		</button>
+		<div class="lang-switch" id="langSwitch" data-lang="en">
 				<select id="langSwitchSelect" aria-label="Language">
 					<option value="en" data-switch-url="/">English</option>
 					<option value="es" data-switch-url="/es">Español</option>
@@ -93,8 +104,22 @@
 					<option value="fr" data-switch-url="/fr">Français</option>
 					<option value="de" data-switch-url="/de">Deutsch</option>
 					<option value="id" data-switch-url="/id">Bahasa Indonesia</option>
+					<option value="ms" data-switch-url="/ms">Bahasa Melayu</option>
+					<option value="it" data-switch-url="/it">Italiano</option>
+					<option value="nl" data-switch-url="/nl">Nederlands</option>
+					<option value="pl" data-switch-url="/pl">Polski</option>
 					<option value="tr" data-switch-url="/tr">Türkçe</option>
 					<option value="ru" data-switch-url="/ru">Русский</option>
+					<option value="uk" data-switch-url="/uk">Українська</option>
+					<option value="el" data-switch-url="/el">Ελληνικά</option>
+					<option value="ro" data-switch-url="/ro">Română</option>
+					<option value="cs" data-switch-url="/cs">Čeština</option>
+					<option value="th" data-switch-url="/th">ไทย</option>
+					<option value="vi" data-switch-url="/vi">Tiếng Việt</option>
+					<option value="ko" data-switch-url="/ko">한국어</option>
+					<option value="ja" data-switch-url="/ja">日本語</option>
+					<option value="ar" data-switch-url="/ar">العربية</option>
+					<option value="jv" data-switch-url="/jv">Basa Jawa</option>
 				</select>
 			</div>
 								<button class="nav-menu-btn" id="navMenuBtn" type="button" aria-expanded="false" aria-controls="mobileNav" aria-label="Open menu">
@@ -108,13 +133,15 @@
 	<div class="mobile-nav" id="mobileNav" hidden>
 		<div class="mobile-nav-inner">
 			<nav class="mobile-nav-links" aria-label="Mobile primary">
-									<a href="/">TikTok downloader</a>
-					<a href="/tiktok-no-watermark">No Watermark</a>
-					<a href="/tiktok-photo-downloader">Photos</a>
-					<a href="/tiktok-mp3-downloader">MP3</a>
-					<a href="/how-to-download-tiktok-videos">Guides</a>
-					<a href="/#faq">FAQ</a>
-							</nav>
+								<a href="/">TikTok downloader</a>
+				<a href="/tiktok-no-watermark">No Watermark</a>
+				<a href="/tiktok-photo-downloader">Photos</a>
+				<a href="/tiktok-mp3-downloader">MP3</a>
+				<a href="/tiktok-downloader-for-iphone">iPhone</a>
+				<a href="/tiktok-downloader-for-android">Android</a>
+				<a href="/how-to-download-tiktok-videos">Guides</a>
+				<a href="/#faq">FAQ</a>
+						</nav>
 		</div>
 	</div>
 
@@ -679,22 +706,28 @@
 
 									</div>
 
-				<div class="footer-col">
+			<div class="footer-col">
 					<h5>Product</h5>
-												<a href="/">TikTok download</a>
-												<a href="/tiktok-no-watermark">No watermark</a>
-												<a href="/tiktok-photo-downloader">Photo download</a>
-												<a href="/tiktok-mp3-downloader">MP3 download</a>
-												<a href="/how-to-download-tiktok-videos">How-to guides</a>
-											</div>
-
-				<div class="footer-col">
-					<h5>Resources</h5>
-												<a href="/about">About</a>
-													<a href="/blog">Blog</a>
-													<a href="/#faq">FAQ</a>
-													<a href="mailto:tikitdown@gmail.com">Contact</a>
+											<a href="/">TikTok download</a>
+											<a href="/tiktok-no-watermark">No watermark</a>
+											<a href="/tiktok-photo-downloader">Photo download</a>
+											<a href="/tiktok-mp3-downloader">MP3 download</a>
+											<a href="/tiktok-downloader-for-iphone">iPhone</a>
+											<a href="/tiktok-downloader-for-android">Android</a>
+											<a href="/tiktok-downloader-for-pc">PC</a>
+											<a href="/tiktok-downloader-for-mac">Mac</a>
+											<a href="/how-to-download-tiktok-videos">How-to guides</a>
 										</div>
+
+			<div class="footer-col">
+				<h5>Resources</h5>
+											<a href="/about">About</a>
+												<a href="/blog">Blog</a>
+												<a href="/ssstik-alternative">vs SSSTik</a>
+												<a href="/snaptik-alternative">vs SnapTik</a>
+												<a href="/#faq">FAQ</a>
+												<a href="mailto:tikitdown@gmail.com">Contact</a>
+									</div>
 
 				<div class="footer-col">
 					<h5>Legal</h5>
@@ -728,7 +761,30 @@ var TIKITDOWN_I18N = {"supported":["en","es","pt","fr","de","id","tr","ru"],"def
 var TIKITDOWN_DOWNLOADER = {"apiBase":"","dlBase":"","offerEnabled":"0","fetchCooldownMs":"15000","downloadCooldownMs":"0","fetchCooldownMsNonSafariIos":"120000","downloadCooldownMsNonSafariIos":"120000","i18n":{"en":{"pasteLink":"Paste a video link above to get started.","pleaseEnterUrl":"Please enter a video link.","fetchingInfo":"Fetching video info...","downloadReady":"Ready to download.","extractionFailed":"Could not extract video. Please try again or check the URL.","invalidLink":"Invalid link. Please check the URL.","fetchFailed":"Could not fetch video data. Please try again or check the URL.","nonVideoProfile":"This is a profile link, not a video link. Open the video you want and copy its link.","nonVideoLive":"Livestreams cannot be downloaded. Paste a regular video link.","nonVideoPage":"This link does not point to a TikTok video. Open the video you want and copy its link.","noUrlFound":"Couldn't find a download link. Try fetching again.","downloadComplete":"Saved to your downloads folder.","downloading":"Downloading","downloadVideo":"Download video","downloadAudio":"Download audio","downloadImage":"Download image","videoThumbnail":"Video thumbnail","videoPreview":"Video preview","fallbackTitle":"Video","views":"views","paste":"Paste","clear":"Clear","loading":"Loading…","fetch":"Fetch","placeholder":"Paste a video link here...","ariaLabel":"Video URL"}}};
 
 </script>
-<script id="tikitdown-app-js" src="/wp-content/themes/downtik/assets/js/app.v12.js"></script>
+<script id="tikitdown-app-js" src="/wp-content/themes/downtik/assets/js/app.v12.min.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function() {});
+  });
+}
+(function() {
+  var root = document.documentElement;
+  var saved = localStorage.getItem('theme');
+  var theme = saved || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  root.classList.toggle('dark', theme === 'dark');
+  root.dataset.theme = theme;
+  var btn = document.getElementById('themeToggle');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      var current = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.classList.toggle('dark', current === 'dark');
+      root.dataset.theme = current;
+      localStorage.setItem('theme', current);
+    });
+  }
+})();
+</script>
 
 </body>
 </html>
