@@ -46,6 +46,7 @@
 <meta name="color-scheme" content="light dark" />
 
 <!-- TikItDown custom head code -->
+<meta name="google-adsense-account" content="ca-pub-XXXXXXXXXXXXXXXX">
 
 
 <link rel='stylesheet' id='tikitdown-fonts-css' href='https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&#038;family=Inter:wght@400;500;600&#038;family=Geist+Mono:wght@400;500&#038;display=swap' media='all' />
@@ -68,6 +69,15 @@
 
 <div class="ambient" aria-hidden="true"><div class="ambient-3"></div></div>
 <div class="grain" aria-hidden="true"></div>
+
+<!-- ============== TOP BANNER AD ============== -->
+<div class="ad-top-banner" id="ad-top-banner">
+	<div class="ad-label">Advertisement</div>
+	<div class="ad-slot ad-slot-top" id="ad-slot-top">
+		<!-- AdSense: 728x90 leaderboard -->
+		<span class="ad-placeholder">Ad Space (728x90)</span>
+	</div>
+</div>
 
 <div class="stage">
 
@@ -328,6 +338,23 @@
 </div>
 </section>
 
+<!-- ============== CONTENT WRAPPER WITH SIDEBARS ============== -->
+<div class="content-with-sidebars">
+
+<!-- ============== LEFT SIDEBAR AD ============== -->
+<aside class="sidebar sidebar-left" aria-label="Advertisement">
+	<div class="sidebar-sticky">
+		<div class="ad-label">Advertisement</div>
+		<div class="ad-slot ad-slot-sidebar" id="ad-slot-left">
+			<!-- AdSense: 300x250 medium rectangle -->
+			<span class="ad-placeholder">Ad Space<br>300x250</span>
+		</div>
+	</div>
+</aside>
+
+<!-- ============== MAIN CONTENT ============== -->
+<main class="main-content">
+
 <!-- ============== FEATURES ============== -->
 <section class="block" id="features">
 	<div class="section-head">
@@ -515,6 +542,15 @@
 		</div>
 	</section>
 
+<!-- ============== IN-CONTENT AD 1 ============== -->
+<div class="ad-in-content" id="ad-in-content-1">
+	<div class="ad-label">Advertisement</div>
+	<div class="ad-slot ad-slot-in-content" id="ad-slot-content-1">
+		<!-- AdSense: 728x90 or 336x280 -->
+		<span class="ad-placeholder">Ad Space (728x90)</span>
+	</div>
+</div>
+
 <!-- ============== HOW IT WORKS ============== -->
 <section class="block" id="how">
 	<div class="section-head">
@@ -603,6 +639,15 @@
 	</div>
 </section>
 
+<!-- ============== IN-CONTENT AD 2 ============== -->
+<div class="ad-in-content" id="ad-in-content-2">
+	<div class="ad-label">Advertisement</div>
+	<div class="ad-slot ad-slot-in-content" id="ad-slot-content-2">
+		<!-- AdSense: 728x90 or 336x280 -->
+		<span class="ad-placeholder">Ad Space (728x90)</span>
+	</div>
+</div>
+
 <!-- ============== FAQ ============== -->
 <section class="block" id="faq">
 	<div class="section-head">
@@ -673,6 +718,30 @@
 			</div>
 </section>
 
+<!-- ============== CLOSE MAIN CONTENT ============== -->
+</main>
+
+<!-- ============== RIGHT SIDEBAR AD ============== -->
+<aside class="sidebar sidebar-right" aria-label="Advertisement">
+	<div class="sidebar-sticky">
+		<div class="ad-label">Advertisement</div>
+		<div class="ad-slot ad-slot-sidebar" id="ad-slot-right">
+			<!-- AdSense: 300x250 medium rectangle -->
+			<span class="ad-placeholder">Ad Space<br>300x250</span>
+		</div>
+	</div>
+</aside>
+
+</div><!-- end content-with-sidebars -->
+
+<!-- ============== FOOTER AD ============== -->
+<div class="ad-footer" id="ad-footer">
+	<div class="ad-label">Advertisement</div>
+	<div class="ad-slot ad-slot-footer" id="ad-slot-footer">
+		<!-- AdSense: 728x90 leaderboard -->
+		<span class="ad-placeholder">Ad Space (728x90)</span>
+	</div>
+</div>
 
 	<!-- ============== FOOTER ============== -->
 	<footer class="footer" role="contentinfo">
@@ -784,6 +853,13 @@ if ('serviceWorker' in navigator) {
     });
   }
 })();
+
+// AdSense - uncomment after approval:
+// var script = document.createElement('script');
+// script.async = true;
+// script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX';
+// script.crossOrigin = 'anonymous';
+// document.head.appendChild(script);
 </script>
 
 </body>

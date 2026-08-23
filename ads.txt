@@ -1,0 +1,3 @@
+# Ads.txt for TikItDown
+# Replace pub-XXXXXXXXXXXXXXXX with your AdSense Publisher ID
+google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
