@@ -362,28 +362,24 @@ h1.hero-title.in {
 
   h1.hero-title {
     font-family: var(--serif);
-    font-weight: 500;
+    font-weight: 700;
     font-size: clamp(48px, 7.5vw, 108px);
     line-height: 1;
     letter-spacing: -0.03em;
     margin: 0 auto 28px;
     max-width: 1000px;
+    color: var(--ink);
   }
-  h1.hero-title .it { font-style: italic; }
+  h1.hero-title .it { font-style: italic; color: var(--tk-cyan); }
   h1.hero-title .gradient {
-    background: linear-gradient(120deg, var(--tk-cyan) 0%, #ffd9e4 35%, var(--tk-pink) 70%, var(--tk-violet) 100%);
+    background: linear-gradient(120deg, var(--tk-pink) 0%, var(--tk-violet) 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
     background-size: 200% auto;
-    animation: shine 8s linear infinite;
-  }
-  @keyframes shine {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
   }
   h1.hero-title .stamp {
     display: inline-block;
     transform: rotate(-3deg);
-    background: var(--ink); color: var(--bg);
+    background: var(--tk-pink); color: #fff;
     padding: 0 18px; border-radius: 8px;
     font-family: var(--sans); font-weight: 600; font-size: 0.42em;
     vertical-align: middle; letter-spacing: -0.01em;
@@ -1185,8 +1181,7 @@ h1.hero-title.in {
   .vid-bg {
     position: absolute; inset: 0;
 background:
-      url("/wp-content/uploads/2026/05/phone-demo.svg") center center / contain no-repeat,
-      linear-gradient(180deg, #89c7ee 0%, #58a6dc 48%, #0f5f74 100%);
+      url("/wp-content/uploads/2026/05/phone-demo.svg") center center / cover no-repeat;
   }
   .vid-bg::before {
     content: "";
