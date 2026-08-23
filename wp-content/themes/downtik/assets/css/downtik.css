@@ -329,6 +329,7 @@ h1.hero-title.in {
     max-width: 1480px; margin: 0 auto;
     background: #0f1117;
     color: #e8eaf0;
+    overflow-x: hidden;
   }
   .hero-copy {
     display: flex;
@@ -1139,6 +1140,7 @@ h1.hero-title.in {
     width: min(540px, 100%);
     margin-left: auto;
     margin-right: auto;
+    overflow: hidden;
   }
   @media (max-width: 980px) {
     .phone-stage { min-height: 520px; margin-top: 20px; }

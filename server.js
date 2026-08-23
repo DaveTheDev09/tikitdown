@@ -1210,7 +1210,7 @@ app.get("/api/fetch", async (req, res) => {
   }
   try {
     const isTikTok = /tiktok|tikcdn|bytedance|byteoversea|muscdn|ibyteimg|byteimg|akamaized|bytedn|tikwm/i.test(u);
-    const opts = { redirect: "follow", signal: AbortSignal.timeout(60000) };
+    const opts = { redirect: "follow", signal: AbortSignal.timeout(120000) };
     if (isTikTok) {
       opts.headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -1223,24 +1223,16 @@ app.get("/api/fetch", async (req, res) => {
       log("fetch upstream " + r.status + " for " + u.substring(0, 80));
       return res.status(502).json({ code: "download_failed", detail: "Upstream returned " + r.status });
     }
-    res.setHeader("Content-Type", r.headers.get("content-type") || "video/mp4");
+    // Buffer entire video to ensure mobile players can play it properly
+    const buf = Buffer.from(await r.arrayBuffer());
+    const contentType = r.headers.get("content-type") || "video/mp4";
+    res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", 'attachment; filename="' + String(name).replace(/[^\w.\s-]/g, "").slice(0, 100) + '"');
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Access-Control-Allow-Origin", "*");
-    const contentLength = r.headers.get("content-length");
-    if (contentLength) {
-      res.setHeader("Content-Length", contentLength);
-    }
-    const reader = r.body.getReader();
-    const pump = async () => {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(value);
-      }
-      res.end();
-    };
-    await pump();
+    res.setHeader("Content-Length", buf.length);
+    res.setHeader("Accept-Ranges", "bytes");
+    res.send(buf);
   } catch (e) {
     log("fetch error: " + e.message);
     if (!res.headersSent) {
