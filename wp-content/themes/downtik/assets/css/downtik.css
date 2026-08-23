@@ -549,10 +549,10 @@ h1.hero-title.in {
   .dl-result-card {
     margin-top: 18px;
     padding: 28px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: var(--r-md);
-    background: #ffffff;
-    box-shadow: 0 16px 40px -20px rgba(18,20,28,0.25);
+    background: #1a1d27;
+    box-shadow: 0 16px 40px -20px rgba(0,0,0,0.5);
     overflow: visible;
     position: relative;
     animation: cardSlideIn .4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -574,7 +574,7 @@ h1.hero-title.in {
     height: 100px;
     object-fit: cover;
     border-radius: 10px;
-    border: 1px solid rgba(18,20,28,0.12);
+    border: 1px solid rgba(255,255,255,0.12);
   }
   .dl-preview__thumb-wrap {
     position: relative;
@@ -604,14 +604,14 @@ h1.hero-title.in {
   .dl-preview__author {
     font-family: var(--mono);
     font-size: 12px;
-    color: var(--ink-3);
+    color: #6b7280;
     text-transform: uppercase;
     letter-spacing: .08em;
     margin-bottom: 8px;
   }
   .dl-preview__desc {
     font-size: 16px;
-    color: var(--ink);
+    color: #e8eaf0;
     line-height: 1.55;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -620,7 +620,7 @@ h1.hero-title.in {
   }
   .dl-preview__sub {
     margin-top: 10px;
-    color: var(--ink-3);
+    color: #6b7280;
     font-size: 13px;
     font-family: var(--mono);
   }
@@ -641,31 +641,42 @@ h1.hero-title.in {
     min-height: 52px;
     padding: 0 22px;
     border-radius: 999px;
-    border: 2px solid var(--line-2);
-    background: var(--card);
-    color: var(--ink);
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #e8eaf0;
     font-weight: 700;
     font-size: 14.5px;
-    box-shadow: 0 10px 24px -14px rgba(15,17,23,0.35);
+    box-shadow: 0 10px 24px -14px rgba(0,0,0,0.5);
     transition: all .2s ease;
   }
   .dl-video-btn:hover,
   .dl-audio-btn:hover,
   .image-dl-btn:hover {
     transform: translateY(-1px);
-    border-color: rgba(18,20,28,0.28);
+    border-color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.1);
   }
   .dl-actions .dl-video-btn {
-    background: #2563eb;
+    background: linear-gradient(135deg, #0d9488, #14b8a6);
     border-color: transparent;
     color: #fff;
-    box-shadow: 0 14px 30px -10px rgba(37,99,235,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+    box-shadow: 0 14px 30px -10px rgba(13,148,136,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
     white-space: nowrap;
     flex-shrink: 0;
   }
   .dl-actions .dl-video-btn:hover {
     transform: translateY(-1px);
-    border-color: rgba(18,20,28,0.28);
+    border-color: transparent;
+    box-shadow: 0 18px 36px -10px rgba(13,148,136,0.55), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .dl-actions .dl-audio-btn {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.15);
+    color: #e8eaf0;
+  }
+  .dl-actions .dl-audio-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.25);
   }
   @media (max-width: 560px) {
     .dl-hd-btn {
