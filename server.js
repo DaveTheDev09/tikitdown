@@ -1435,8 +1435,7 @@ app.get("/robots.txt", (req, res) => {
       "Disallow: /deploy/\n" +
       "Disallow: /server.js\n" +
       "Disallow: /package.json\n" +
-      "Disallow: /package-lock.json\n" +
-      "Disallow: /*.html$\n\n" +
+      "Disallow: /package-lock.json\n\n" +
       "Sitemap: " +
       proto +
       "://" +
