@@ -12,6 +12,7 @@ const OUTPUT_DIR = path.join(__dirname, "output");
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
