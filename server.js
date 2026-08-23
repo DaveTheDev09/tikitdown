@@ -633,7 +633,7 @@ function mapYtDlpData(j) {
     width: f.width || 0,
     label: f.height ? f.height + "p" : f.format_note || "original",
     filesize: f.filesize || f.filesize_approx || 0,
-    need_proxy: false,
+    need_proxy: true,
   } : null;
 
   const isPhoto = (j._type === "photo") || (j.extractor === "TikTok" && !bestVideo && !j.url);
@@ -1227,6 +1227,10 @@ app.get("/api/fetch", async (req, res) => {
     res.setHeader("Content-Disposition", 'attachment; filename="' + String(name).replace(/[^\w.\s-]/g, "").slice(0, 100) + '"');
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Access-Control-Allow-Origin", "*");
+    const contentLength = r.headers.get("content-length");
+    if (contentLength) {
+      res.setHeader("Content-Length", contentLength);
+    }
     const reader = r.body.getReader();
     const pump = async () => {
       while (true) {
