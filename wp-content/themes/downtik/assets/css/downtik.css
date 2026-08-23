@@ -2486,16 +2486,33 @@ background:
     --card-2: rgba(255,255,255,0.06);
   }
   .dark body { background: #0f1117; color: #e8eaf0; }
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 { color: #e8eaf0; }
+  .dark p, .dark li, .dark span, .dark div { color: inherit; }
+  .dark a { color: #14b8a6; }
+  .dark a:hover { color: #0d9488; }
   .dark .nav { background: rgba(15,17,23,0.92); border-color: rgba(255,255,255,0.08); }
+  .dark .nav a { color: #a0a8b8; }
+  .dark .nav a:hover { color: #e8eaf0; }
   .dark .nav-menu-btn { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
   .dark .theme-toggle { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: #a0a8b8; }
   .dark .theme-toggle:hover { background: rgba(255,255,255,0.1); color: #e8eaf0; }
+  .dark .eyebrow { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); color: #a0a8b8; }
+  .dark .lede { color: #a0a8b8; }
+  .dark .lede strong { color: #e8eaf0; }
+  .dark .input-meta { color: #6b7280; }
   .dark .dl-result-card { background: rgba(26,29,39,0.9); border-color: rgba(255,255,255,0.1); }
   .dark .faq-item { border-color: rgba(255,255,255,0.08); }
   .dark .faq-q { color: #e8eaf0; }
+  .dark .faq-a { color: #a0a8b8; }
   .dark .step { background: rgba(26,29,39,0.6); border-color: rgba(255,255,255,0.08); }
+  .dark .step h3 { color: #e8eaf0; }
+  .dark .step p { color: #a0a8b8; }
   .dark .feat { background: rgba(26,29,39,0.6); border-color: rgba(255,255,255,0.08); }
+  .dark .feat h3 { color: #e8eaf0; }
+  .dark .feat p { color: #a0a8b8; }
   .dark .fmt { background: rgba(26,29,39,0.6); border-color: rgba(255,255,255,0.08); }
+  .dark .fmt h3 { color: #e8eaf0; }
+  .dark .fmt p { color: #a0a8b8; }
   .dark .footer { background: #0a0c12; }
   .dark .footer-col h5 { color: #e8eaf0; }
   .dark .footer-col a { color: #a0a8b8; }
@@ -2504,3 +2521,41 @@ background:
   .dark .formats-content h2 { color: #e8eaf0; }
   .dark .lang-switch select { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: #a0a8b8; }
   .dark input[type="text"] { background: rgba(26,29,39,0.8); border-color: rgba(255,255,255,0.12); color: #e8eaf0; }
+  .dark .phone-stage .fc-text .t { color: #e8eaf0; }
+  .dark .phone-stage .fc-text .s { color: #a0a8b8; }
+  .dark .phone-stage .fc-quality span { color: #a0a8b8; }
+  .dark .phone-stage .badge { background: #0d9488; color: #fff; }
+  .dark section { color: #e8eaf0; }
+  .dark section p { color: #a0a8b8; }
+  .dark section h2 { color: #e8eaf0; }
+  .dark .tag-section { background: rgba(26,29,39,0.6); }
+  .dark .tag-section a { color: #14b8a6; }
+  .dark .blog-card { background: rgba(26,29,39,0.6); border-color: rgba(255,255,255,0.08); }
+  .dark .blog-card h3 { color: #e8eaf0; }
+  .dark .blog-card p { color: #a0a8b8; }
+  .dark .cta-box { background: rgba(26,29,39,0.6); border-color: rgba(255,255,255,0.08); }
+  .dark .cta-box p { color: #a0a8b8; }
+  .dark .legal-content h2 { color: #e8eaf0; }
+  .dark .legal-content p { color: #a0a8b8; }
+  .dark .legal-content li { color: #a0a8b8; }
+  .dark table { border-color: rgba(255,255,255,0.08); }
+  .dark th { background: rgba(26,29,39,0.6); color: #e8eaf0; }
+  .dark td { border-color: rgba(255,255,255,0.08); color: #a0a8b8; }
+  .dark blockquote { border-left-color: #0d9488; background: rgba(26,29,39,0.4); }
+  .dark blockquote p { color: #a0a8b8; }
+  .dark code { background: rgba(26,29,39,0.8); color: #14b8a6; }
+  .dark pre { background: rgba(26,29,39,0.8); border-color: rgba(255,255,255,0.08); }
+  .dark pre code { color: #e8eaf0; }
+  .dark strong { color: #e8eaf0; }
+  .dark em { color: #a0a8b8; }
+  .dark ul li::marker { color: #0d9488; }
+  .dark ol li::marker { color: #0d9488; }
+  .dark .v-template-hero-card { background: rgba(26,29,39,0.6); border-color: rgba(255,255,255,0.08); }
+  .dark .v-template-hero-card h2 { color: #e8eaf0; }
+  .dark .v-template-hero-card p { color: #a0a8b8; }
+  .dark .v-template-split-hero { background: rgba(26,29,39,0.4); }
+  .dark .v-template-split-hero h2 { color: #e8eaf0; }
+  .dark .v-template-split-hero p { color: #a0a8b8; }
+  .dark .v-template-center-hero { background: rgba(26,29,39,0.4); }
+  .dark .v-template-center-hero h2 { color: #e8eaf0; }
+  .dark .v-template-center-hero p { color: #a0a8b8; }
