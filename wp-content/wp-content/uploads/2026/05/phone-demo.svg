@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="312" height="636" viewBox="0 0 312 636">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f1117"/>
+      <stop offset="100%" stop-color="#1a1d27"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.02)"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Phone frame -->
+  <rect width="312" height="636" rx="46" fill="#0a0c12"/>
+  <rect x="5" y="5" width="302" height="626" rx="41" fill="url(#bg)"/>
+  
+  <!-- Screen content -->
+  <g transform="translate(24, 50)">
+    <!-- Logo -->
+    <text x="0" y="30" fill="#e8eaf0" font-family="system-ui, sans-serif" font-size="20" font-weight="700">TikItDown</text>
+    <circle cx="128" cy="26" r="3" fill="#ff2d55"/>
+    
+    <!-- Nav links -->
+    <text x="0" y="55" fill="#6b7280" font-family="system-ui, sans-serif" font-size="11">TikTok downloader · No Watermark · Photos · MP3</text>
+    
+    <!-- Hero text - fixed overlapping -->
+    <text x="0" y="95" fill="#e8eaf0" font-family="system-ui, sans-serif" font-size="20" font-weight="700">Download TikTok Videos</text>
+    <text x="0" y="120" fill="#0d9488" font-family="system-ui, sans-serif" font-size="18" font-weight="600">without watermark</text>
+    
+    <!-- Input box -->
+    <rect x="0" y="145" width="264" height="52" rx="14" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+    <text x="16" y="175" fill="#6b7280" font-family="system-ui, sans-serif" font-size="13">Paste any TikTok link here...</text>
+    
+    <!-- Download button -->
+    <rect x="0" y="210" width="264" height="48" rx="14" fill="url(#btn)"/>
+    <text x="100" y="239" fill="white" font-family="system-ui, sans-serif" font-size="15" font-weight="600">Download</text>
+    <path d="M195 228 l6 6 l-6 6" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Tags - fixed spacing -->
+    <text x="0" y="285" fill="#0d9488" font-family="system-ui, sans-serif" font-size="11">✓ No watermark</text>
+    <text x="95" y="285" fill="#0d9488" font-family="system-ui, sans-serif" font-size="11">✓ HD / 1080p / 4K</text>
+    <text x="210" y="285" fill="#0d9488" font-family="system-ui, sans-serif" font-size="11">✓ Free</text>
+    
+    <!-- Result card -->
+    <rect x="0" y="310" width="264" height="100" rx="16" fill="url(#card)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <rect x="16" y="326" width="70" height="50" rx="8" fill="rgba(13,148,136,0.2)"/>
+    <text x="24" y="356" fill="#0d9488" font-family="system-ui, sans-serif" font-size="20">▶</text>
+    <text x="100" y="346" fill="#e8eaf0" font-family="system-ui, sans-serif" font-size="13" font-weight="500">Video (MP4)</text>
+    <text x="100" y="366" fill="#6b7280" font-family="system-ui, sans-serif" font-size="11">1080p · 6.2 MB</text>
+    <rect x="100" y="380" width="70" height="26" rx="8" fill="url(#btn)"/>
+    <text x="116" y="397" fill="white" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Save</text>
+    
+    <!-- Second result -->
+    <rect x="0" y="425" width="264" height="50" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="16" y="455" fill="#a0a8b8" font-family="system-ui, sans-serif" font-size="12">🎵 Audio (MP3) · 3.2 MB</text>
+    <rect x="180" y="438" width="68" height="26" rx="6" fill="rgba(13,148,136,0.15)"/>
+    <text x="196" y="455" fill="#0d9488" font-family="system-ui, sans-serif" font-size="10" font-weight="500">Save</text>
+    
+    <!-- Bottom text -->
+    <text x="0" y="510" fill="#4a5265" font-family="system-ui, sans-serif" font-size="10">Works on iPhone, Android, PC &amp; Mac</text>
+    <text x="0" y="525" fill="#4a5265" font-family="system-ui, sans-serif" font-size="10">No signup · No install · 100% free</text>
+  </g>
+</svg>
